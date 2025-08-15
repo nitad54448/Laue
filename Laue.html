@@ -109,15 +109,15 @@
                     <div id="rotationControls" class="info-section">
                         <span class="block-label">Crystal Rotation (°)</span>
                          <div class="grid-container" style="grid-template-columns: auto 1fr 60px;">
-                            <label for="rotX">X:</label>
+                            <label for="rotX">X (beam):</label>
                             <input type="range" id="rotX_slider" value="0" min="-90" max="90" step="1">
                             <input type="number" id="rotX" value="0" min="-90" max="90" step="1">
                             
-                            <label for="rotY">Y:</label>
+                            <label for="rotY">Y (horiz):</label>
                             <input type="range" id="rotY_slider" value="0" min="-90" max="90" step="1">
                             <input type="number" id="rotY" value="0" min="-90" max="90" step="1">
 
-                            <label for="rotZ">Z:</label>
+                            <label for="rotZ">Z (vert):</label>
                             <input type="range" id="rotZ_slider" value="0" min="-90" max="90" step="1">
                             <input type="number" id="rotZ" value="0" min="-90" max="90" step="1">
                         </div>
@@ -248,7 +248,7 @@
                 });
             });
 
-            // --- Lattice Parameter Validation --- [SOLUTION ADDED HERE]
+            // --- Lattice Parameter Validation ---
             ['a', 'b', 'c'].forEach(param => {
                 const inputElement = document.getElementById(param);
                 if (inputElement) {
@@ -472,6 +472,7 @@
             if(event.button===0){isPanning=true;isDragging=false;mouseDownPosition.set(event.clientX,event.clientY);}
         }
         
+        // --- CORRECTED MOUSE ROTATION ---
         function onDetectorMouseMove(e){
             if(isPanning){
                 const cur = new THREE.Vector2(e.clientX,e.clientY);
@@ -480,25 +481,29 @@
                     detectorContainer.style.cursor = 'grabbing';
                 }
                 if(isDragging){
-                    const rotXInput = document.getElementById('rotX');
-                    const rotYInput = document.getElementById('rotY');
-                    const rotXSlider = document.getElementById('rotX_slider');
+                    const rotYInput = document.getElementById('rotY'); // Horizontal axis rotation
+                    const rotZInput = document.getElementById('rotZ'); // Vertical axis rotation
                     const rotYSlider = document.getElementById('rotY_slider');
+                    const rotZSlider = document.getElementById('rotZ_slider');
 
                     const dx = e.clientX - mouseDownPosition.x;
                     const dy = e.clientY - mouseDownPosition.y;
                     const sensitivity = 0.25;
 
-                    let newRotY = parseFloat(rotYInput.value) + dx * sensitivity;
-                    let newRotX = parseFloat(rotXInput.value) + dy * sensitivity;
+                    // Horizontal drag (dx) rotates around the vertical axis (user's Z-axis)
+                    let newRotZ = parseFloat(rotZInput.value) + dx * sensitivity;
+                    // Vertical drag (dy) rotates around the horizontal axis (user's Y-axis)
+                    let newRotY = parseFloat(rotYInput.value) + dy * sensitivity;
 
+                    // Clamp values to the slider's min/max
+                    newRotZ = Math.max(parseFloat(rotZSlider.min), Math.min(parseFloat(rotZSlider.max), newRotZ));
                     newRotY = Math.max(parseFloat(rotYSlider.min), Math.min(parseFloat(rotYSlider.max), newRotY));
-                    newRotX = Math.max(parseFloat(rotXSlider.min), Math.min(parseFloat(rotXSlider.max), newRotX));
                     
+                    // Update UI controls
+                    rotZInput.value = newRotZ.toFixed(0);
                     rotYInput.value = newRotY.toFixed(0);
-                    rotXInput.value = newRotX.toFixed(0);
+                    rotZSlider.value = newRotZ.toFixed(0);
                     rotYSlider.value = newRotY.toFixed(0);
-                    rotXSlider.value = newRotX.toFixed(0);
 
                     mouseDownPosition.copy(cur);
                     updateVisualization();
@@ -517,27 +522,36 @@
         }
         
         function onDetectorTouchStart(e){e.preventDefault();if(e.touches.length===1){isPanning=true;isDragging=false;mouseDownPosition.set(e.touches[0].clientX,e.touches[0].clientY);}else if(e.touches.length===2){isPanning=false;const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastTouchDistance=Math.sqrt(dx*dx+dy*dy);lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};}}
+        
+        // --- CORRECTED TOUCH ROTATION ---
         function onDetectorTouchMove(e){
             e.preventDefault();
             if(e.touches.length===1&&isPanning){
                 const cur=new THREE.Vector2(e.touches[0].clientX,e.touches[0].clientY);
                 if(mouseDownPosition.distanceTo(cur)>5) isDragging=true;
                 if(isDragging){
-                    const rotXInput = document.getElementById('rotX');
-                    const rotYInput = document.getElementById('rotY');
-                    const rotXSlider = document.getElementById('rotX_slider');
+                    const rotYInput = document.getElementById('rotY'); // Horizontal axis rotation
+                    const rotZInput = document.getElementById('rotZ'); // Vertical axis rotation
                     const rotYSlider = document.getElementById('rotY_slider');
+                    const rotZSlider = document.getElementById('rotZ_slider');
                     const dx = e.touches[0].clientX - mouseDownPosition.x;
                     const dy = e.touches[0].clientY - mouseDownPosition.y;
                     const sensitivity = 0.25;
-                    let newRotY = parseFloat(rotYInput.value) + dx * sensitivity;
-                    let newRotX = parseFloat(rotXInput.value) + dy * sensitivity;
+
+                    // Horizontal drag (dx) rotates around the vertical axis (user's Z-axis)
+                    let newRotZ = parseFloat(rotZInput.value) + dx * sensitivity;
+                    // Vertical drag (dy) rotates around the horizontal axis (user's Y-axis)
+                    let newRotY = parseFloat(rotYInput.value) + dy * sensitivity;
+
+                    // Clamp values
+                    newRotZ = Math.max(parseFloat(rotZSlider.min), Math.min(parseFloat(rotZSlider.max), newRotZ));
                     newRotY = Math.max(parseFloat(rotYSlider.min), Math.min(parseFloat(rotYSlider.max), newRotY));
-                    newRotX = Math.max(parseFloat(rotXSlider.min), Math.min(parseFloat(rotXSlider.max), newRotX));
+
+                    // Update UI
+                    rotZInput.value = newRotZ.toFixed(0);
                     rotYInput.value = newRotY.toFixed(0);
-                    rotXInput.value = newRotX.toFixed(0);
+                    rotZSlider.value = newRotZ.toFixed(0);
                     rotYSlider.value = newRotY.toFixed(0);
-                    rotXSlider.value = newRotX.toFixed(0);
 
                     mouseDownPosition.set(e.touches[0].clientX, e.touches[0].clientY);
                     updateVisualization();
@@ -598,8 +612,17 @@
             }
         }
         
+        // --- CORRECTED EULER ROTATION ---
         function runLaueSimulation(points) {
-            const euler=new THREE.Euler(...['X','Y','Z'].map(ax=>THREE.MathUtils.degToRad(parseFloat(document.getElementById('rot'+ax).value)||0)));
+            // Get user-defined rotations in radians
+            const rotX_rad = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotX').value) || 0); // User's X rotation (around beam)
+            const rotY_rad = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotY').value) || 0); // User's Y rotation (around horizontal)
+            const rotZ_rad = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotZ').value) || 0); // User's Z rotation (around vertical)
+
+            // Remap from user's coordinate system to simulation's coordinate system
+            // Simulation axes (X, Y, Z) correspond to User's axes (Y, Z, X)
+            const euler = new THREE.Euler(rotY_rad, rotZ_rad, rotX_rad, 'XYZ');
+
             const lambda_min=parseFloat(document.getElementById('lambda_min').value),lambda_max=parseFloat(document.getElementById('lambda_max').value);
             if(isNaN(lambda_min)||isNaN(lambda_max)||lambda_min<=0||lambda_max<=lambda_min)return;
             const k_min=1/lambda_max, k_max=1/lambda_min;
