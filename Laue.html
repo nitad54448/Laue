@@ -108,27 +108,32 @@
                 <div id="singleCrystalControls">
                     <div id="rotationControls" class="info-section">
                         <span class="block-label">Crystal Rotation (°)</span>
-                         <div class="grid-container" style="grid-template-columns: auto 1fr 45px;">
+                         <div class="grid-container" style="grid-template-columns: auto 1fr 60px;">
                             <label for="rotX">X:</label>
-                            <input type="range" id="rotX" value="0" min="-90" max="90" step="1">
-                            <span id="rotX_val">0°</span>
+                            <input type="range" id="rotX_slider" value="0" min="-90" max="90" step="1">
+                            <input type="number" id="rotX" value="0" min="-90" max="90" step="1">
                             
                             <label for="rotY">Y:</label>
-                            <input type="range" id="rotY" value="0" min="-90" max="90" step="1">
-                            <span id="rotY_val">0°</span>
+                            <input type="range" id="rotY_slider" value="0" min="-90" max="90" step="1">
+                            <input type="number" id="rotY" value="0" min="-90" max="90" step="1">
 
                             <label for="rotZ">Z:</label>
-                            <input type="range" id="rotZ" value="0" min="-90" max="90" step="1">
-                            <span id="rotZ_val">0°</span>
+                            <input type="range" id="rotZ_slider" value="0" min="-90" max="90" step="1">
+                            <input type="number" id="rotZ" value="0" min="-90" max="90" step="1">
                         </div>
                     </div>
                 </div>
                 
                 <div class="info-section">
                     <span class="block-label">X-Ray Source (Laue)</span>
-                    <div id="lambdaControls" class="grid-container">
-                        <label for="lambda_min">λ_min (Å)</label><input type="number" id="lambda_min" value="0.2" step="0.1" min="0.1">
-                        <label for="lambda_max">λ_max (Å)</label><input type="number" id="lambda_max" value="2.0" step="0.1" min="0.1">
+                    <div id="lambdaControls" class="grid-container" style="grid-template-columns: auto 1fr 65px;">
+                        <label for="lambda_min">λ_min (Å)</label>
+                        <input type="range" id="lambda_min_slider" value="0.2" min="0.1" max="2.0" step="0.1">
+                        <input type="number" id="lambda_min" value="0.2" min="0.1" max="2.0" step="0.1">
+                        
+                        <label for="lambda_max">λ_max (Å)</label>
+                        <input type="range" id="lambda_max_slider" value="2.0" min="0.2" max="5.0" step="0.1">
+                        <input type="number" id="lambda_max" value="2.0" min="0.2" max="5.0" step="0.1">
                     </div>
                 </div>
 
@@ -143,10 +148,10 @@
                         <label for="detectorDistance" class="grid-span-2">Distance (mm)</label>
                         <input type="number" id="detectorDistance" value="50" step="1" min="10" class="grid-span-2">
                         
-                        <label for="detectorDiameter" class="grid-span-2" style="margin-top: 10px;">Diameter (cm)</label>
-                        <div class="grid-span-2" style="display: flex; align-items: center; gap: 10px;">
-                            <input type="range" id="detectorDiameter" value="150" min="50" max="250" step="10">
-                            <span id="detectorDiameter_val" style="width: 50px; text-align: right;">15.0</span>
+                        <label for="detectorDiameter" class="grid-span-2" style="margin-top: 10px;">Diameter (mm)</label>
+                        <div class="grid-span-2" style="display: grid; grid-template-columns: 1fr 65px; gap: 10px; align-items: center;">
+                           <input type="range" id="detectorDiameter_slider" value="150" min="50" max="250" step="10">
+                           <input type="number" id="detectorDiameter" value="150" min="50" max="250" step="10">
                         </div>
                     </div>
                 </div>
@@ -230,30 +235,124 @@
 
         function setupEventListeners() {
             document.querySelectorAll('#controlsContent input, #controlsContent select').forEach(el => {
+                // This generic listener will handle all inputs that don't have specific sync logic
                 el.addEventListener(el.tagName.toLowerCase() === 'select' ? 'change' : 'input', () => {
                     if (el.id === 'crystalSystem') {
-                        handleCrystalSystemChange();
-                    } else if (el.id === 'detectorDiameter') {
-                         // Only need to redraw, not a full recalculation
-                        redrawDetector();
-                    }
-                    else {
+                        handleCrystalSystemChange(); // This calls updateVisualization itself
+                    } else {
                         updateVisualization();
                     }
                 });
             });
 
-             document.querySelectorAll('#rotationControls input[type=range]').forEach(slider => {
-                slider.addEventListener('input', (event) => {
-                    document.getElementById(event.target.id + '_val').textContent = event.target.value + '°';
+            // --- Lattice Parameter Validation --- [SOLUTION ADDED HERE]
+            ['a', 'b', 'c'].forEach(param => {
+                const inputElement = document.getElementById(param);
+                if (inputElement) {
+                    inputElement.addEventListener('change', (event) => {
+                        const minValue = parseFloat(event.target.min) || 0.1;
+                        let value = parseFloat(event.target.value);
+                        if (isNaN(value) || value < minValue) {
+                            event.target.value = minValue;
+                            updateVisualization();
+                        }
+                    });
+                }
+            });
+
+            // --- Rotation Controls Synchronization ---
+            ['X', 'Y', 'Z'].forEach(ax => {
+                const slider = document.getElementById(`rot${ax}_slider`);
+                const numberInput = document.getElementById(`rot${ax}`);
+
+                slider.addEventListener('input', () => {
+                    numberInput.value = slider.value;
+                    updateVisualization();
+                });
+                numberInput.addEventListener('input', () => {
+                    slider.value = numberInput.value;
+                    updateVisualization();
+                });
+                numberInput.addEventListener('change', () => { // Clamp value on blur/enter
+                    let val = parseFloat(numberInput.value);
+                    const min = parseFloat(slider.min);
+                    const max = parseFloat(slider.max);
+                    if (isNaN(val) || val < min) { numberInput.value = min; }
+                    if (val > max) { numberInput.value = max; }
+                    slider.value = numberInput.value;
                     updateVisualization();
                 });
             });
+            
+            // --- Lambda Controls Synchronization ---
+            const lambdaMinSlider = document.getElementById('lambda_min_slider');
+            const lambdaMaxSlider = document.getElementById('lambda_max_slider');
+            const lambdaMinInput = document.getElementById('lambda_min');
+            const lambdaMaxInput = document.getElementById('lambda_max');
 
-            document.getElementById('detectorDiameter').addEventListener('input', (event) => {
-                document.getElementById('detectorDiameter_val').textContent = (parseFloat(event.target.value) / 10).toFixed(1);
+            function updateLambdaControls(source) {
+                let minVal, maxVal;
+
+                if (source === 'min_slider') {
+                    minVal = parseFloat(lambdaMinSlider.value);
+                    lambdaMinInput.value = minVal.toFixed(1);
+                } else if (source === 'min_input') {
+                    minVal = parseFloat(lambdaMinInput.value);
+                    if(isNaN(minVal)) return;
+                    lambdaMinSlider.value = minVal;
+                } else if (source === 'max_slider') {
+                    maxVal = parseFloat(lambdaMaxSlider.value);
+                    lambdaMaxInput.value = maxVal.toFixed(1);
+                } else if (source === 'max_input') {
+                    maxVal = parseFloat(lambdaMaxInput.value);
+                    if(isNaN(maxVal)) return;
+                    lambdaMaxSlider.value = maxVal;
+                }
+                
+                minVal = parseFloat(lambdaMinSlider.value);
+                maxVal = parseFloat(lambdaMaxSlider.value);
+
+                if (minVal >= maxVal) {
+                    if (source.startsWith('min')) {
+                        const newMax = Math.min(parseFloat(lambdaMaxSlider.max), minVal + parseFloat(lambdaMinSlider.step));
+                        lambdaMaxSlider.value = newMax;
+                        lambdaMaxInput.value = newMax.toFixed(1);
+                    } else { // source starts with 'max'
+                        const newMin = Math.max(parseFloat(lambdaMinSlider.min), maxVal - parseFloat(lambdaMinSlider.step));
+                        lambdaMinSlider.value = newMin;
+                        lambdaMinInput.value = newMin.toFixed(1);
+                    }
+                }
+                updateVisualization();
+            }
+            lambdaMinSlider.addEventListener('input', () => updateLambdaControls('min_slider'));
+            lambdaMinInput.addEventListener('input', () => updateLambdaControls('min_input'));
+            lambdaMaxSlider.addEventListener('input', () => updateLambdaControls('max_slider'));
+            lambdaMaxInput.addEventListener('input', () => updateLambdaControls('max_input'));
+
+
+            // --- Detector Diameter Synchronization ---
+            const diameterSlider = document.getElementById('detectorDiameter_slider');
+            const diameterInput = document.getElementById('detectorDiameter');
+            
+            diameterSlider.addEventListener('input', () => {
+                diameterInput.value = diameterSlider.value;
                 redrawDetector();
             });
+            diameterInput.addEventListener('input', () => {
+                diameterSlider.value = diameterInput.value;
+                redrawDetector();
+            });
+            diameterInput.addEventListener('change', () => { // Clamp value on blur
+                let val = parseFloat(diameterInput.value);
+                const min = parseFloat(diameterSlider.min);
+                const max = parseFloat(diameterSlider.max);
+                if (isNaN(val) || val < min) { diameterInput.value = min; }
+                if (val > max) { diameterInput.value = max; }
+                slider.value = diameterInput.value;
+                redrawDetector();
+            });
+
 
             detectorCanvas.addEventListener('contextmenu', e => e.preventDefault(), false);
             detectorCanvas.addEventListener('wheel', onDetectorWheel, { passive: false });
@@ -353,19 +452,26 @@
                     detectorContainer.style.cursor = 'grabbing';
                 }
                 if(isDragging){
-                    const rotXSlider = document.getElementById('rotX');
-                    const rotYSlider = document.getElementById('rotY');
+                    const rotXInput = document.getElementById('rotX');
+                    const rotYInput = document.getElementById('rotY');
+                    const rotXSlider = document.getElementById('rotX_slider');
+                    const rotYSlider = document.getElementById('rotY_slider');
+
                     const dx = e.clientX - mouseDownPosition.x;
                     const dy = e.clientY - mouseDownPosition.y;
                     const sensitivity = 0.25;
-                    let newRotY = parseFloat(rotYSlider.value) + dx * sensitivity;
-                    let newRotX = parseFloat(rotXSlider.value) + dy * sensitivity;
+
+                    let newRotY = parseFloat(rotYInput.value) + dx * sensitivity;
+                    let newRotX = parseFloat(rotXInput.value) + dy * sensitivity;
+
                     newRotY = Math.max(parseFloat(rotYSlider.min), Math.min(parseFloat(rotYSlider.max), newRotY));
                     newRotX = Math.max(parseFloat(rotXSlider.min), Math.min(parseFloat(rotXSlider.max), newRotX));
-                    rotYSlider.value = newRotY;
-                    rotXSlider.value = newRotX;
-                    document.getElementById('rotY_val').textContent = Math.round(newRotY) + '°';
-                    document.getElementById('rotX_val').textContent = Math.round(newRotX) + '°';
+                    
+                    rotYInput.value = newRotY.toFixed(0);
+                    rotXInput.value = newRotX.toFixed(0);
+                    rotYSlider.value = newRotY.toFixed(0);
+                    rotXSlider.value = newRotX.toFixed(0);
+
                     mouseDownPosition.copy(cur);
                     updateVisualization();
                 }
@@ -389,19 +495,22 @@
                 const cur=new THREE.Vector2(e.touches[0].clientX,e.touches[0].clientY);
                 if(mouseDownPosition.distanceTo(cur)>5) isDragging=true;
                 if(isDragging){
-                    const rotXSlider = document.getElementById('rotX');
-                    const rotYSlider = document.getElementById('rotY');
+                    const rotXInput = document.getElementById('rotX');
+                    const rotYInput = document.getElementById('rotY');
+                    const rotXSlider = document.getElementById('rotX_slider');
+                    const rotYSlider = document.getElementById('rotY_slider');
                     const dx = e.touches[0].clientX - mouseDownPosition.x;
                     const dy = e.touches[0].clientY - mouseDownPosition.y;
                     const sensitivity = 0.25;
-                    let newRotY = parseFloat(rotYSlider.value) + dx * sensitivity;
-                    let newRotX = parseFloat(rotXSlider.value) + dy * sensitivity;
+                    let newRotY = parseFloat(rotYInput.value) + dx * sensitivity;
+                    let newRotX = parseFloat(rotXInput.value) + dy * sensitivity;
                     newRotY = Math.max(parseFloat(rotYSlider.min), Math.min(parseFloat(rotYSlider.max), newRotY));
                     newRotX = Math.max(parseFloat(rotXSlider.min), Math.min(parseFloat(rotXSlider.max), newRotX));
-                    rotYSlider.value = newRotY;
-                    rotXSlider.value = newRotX;
-                    document.getElementById('rotY_val').textContent = Math.round(newRotY) + '°';
-                    document.getElementById('rotX_val').textContent = Math.round(newRotX) + '°';
+                    rotYInput.value = newRotY.toFixed(0);
+                    rotXInput.value = newRotX.toFixed(0);
+                    rotYSlider.value = newRotY.toFixed(0);
+                    rotXSlider.value = newRotX.toFixed(0);
+
                     mouseDownPosition.set(e.touches[0].clientX, e.touches[0].clientY);
                     updateVisualization();
                 }
@@ -488,6 +597,7 @@
         }
         
         function redrawDetector() {
+            if (!detectorCtx) return;
             detectorCtx.fillStyle='#1a1a2a';
             detectorCtx.fillRect(0,0,detectorCanvas.width,detectorCanvas.height);
             
