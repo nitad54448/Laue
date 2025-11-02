@@ -1,112 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Laue Simulator & Indexer — Help & Theory</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{
-      --ink:#111827; --ink-2:#374151; --ink-3:#4b5563;
-      --bg:#f9fafb; --card:#ffffff; --accent:#1a73e8;
-      --warn:#9f6000; --warnbg:#fffbe6; --err:#a00000; --errbg:#ffebe6; --line:#e5e7eb;
-      --mono:#1f2937; --mono-ink:#e5e7eb;
-    }
-    html,body{background:var(--bg); color:#111; font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin:0}
-    main{max-width:980px; margin:28px auto; padding:20px}
-    h1,h2,h3{color:var(--ink); margin:28px 0 12px}
-    h1{font-size:2.2rem; border-bottom:3px solid var(--accent); padding-bottom:8px}
-    h2{font-size:1.6rem; border-bottom:2px solid var(--accent); padding-bottom:6px}
-    h3{font-size:1.25rem; border-bottom:1px solid var(--line); padding-bottom:6px; color:var(--ink-2)}
-    p{margin:10px 0 14px}
-    ul,ol{padding-left:24px; margin:8px 0 16px}
-    li{margin:6px 0}
-    .card{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; margin:18px 0}
-    .tint{background:#f0f7ff; border-color:#b3d4fc}
-    .alert{background:var(--warnbg); border:1px solid #ffe58f; color:var(--warn); border-radius:6px; padding:14px}
-    .alert.error{background:var(--errbg); border-color:#ff8f8f; color:var(--err)}
-    code{background:#eef; padding:1px 4px; border-radius:4px}
-    pre code{display:block; background:var(--mono); color:var(--mono-ink); padding:14px; border-radius:6px; overflow:auto}
-    .key{font-weight:700; color:var(--accent)}
-    .kbd{font:600 12px/1 monospace; background:#eee; padding:2px 6px; border-radius:4px}
-    table{border-collapse:collapse; width:100%; margin:10px 0 16px}
-    th,td{border:1px solid var(--line); padding:8px 10px; text-align:left}
-    th{background:#f3f4f6}
-    .small{font-size:.95rem; color:#374151}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laue Simulator & Indexer — Help & Theory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #111827;
+            --medium-bg: #1f2937;
+            --light-bg: #374151;
+            --border-color: #4b5563;
+            --primary-accent: #3b82f6;
+            --text-light: #f3f4f6;
+            --text-medium: #d1d5db;
+            --text-dark: #9ca3af;
+            --content-bg: #ffffff;
+            --content-text: #1f2937;
+            --content-heading: #111827;
+            --code-bg: #f3f4f6;
+            --code-text: #111827;
+        }
+        body {
+            font-family: 'Inter', sans-serif; margin: 0; background-color: var(--content-bg);
+            color: var(--content-text); line-height: 1.7; display: flex;
+            height: 100vh; overflow: hidden;
+        }
+        #left-panel {
+            width: 280px; flex-shrink: 0; background-color: var(--dark-bg);
+            color: var(--text-medium); padding: 2rem; overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+        }
+        #left-panel .logo {
+            font-size: 1.5rem; font-weight: 700; color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+        #left-panel .logo span { color: var(--primary-accent); }
+        #toc { list-style: none; padding: 0; margin: 0; }
+        #toc li a {
+            display: block; color: var(--text-dark); text-decoration: none;
+            padding: 0.6rem 1rem; border-radius: 0.375rem; font-weight: 500;
+            font-size: 0.9rem; transition: background-color 0.2s, color 0.2s;
+            border-left: 3px solid transparent;
+        }
+        #toc li a:hover { background-color: var(--medium-bg); color: var(--text-light); }
+        #toc li a.active {
+            background-color: var(--light-bg); color: var(--text-light);
+            border-left-color: var(--primary-accent); font-weight: 600;
+        }
+        #main-content { flex-grow: 1; overflow-y: auto; padding: 3rem 4rem; }
+        section {
+            margin-bottom: 4rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;
+        }
+        section:first-child { padding-top: 0; border-top: none; }
+        h1, h2, h3, h4 {
+            color: var(--content-heading); font-weight: 700; line-height: 1.3;
+            margin-top: 1.5em; margin-bottom: 1em;
+        }
+        h1 { font-size: 2.5rem; }
+        h2 { font-size: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+        h3 { font-size: 1.5rem; }
+        h4 { font-size: 1.2rem; }
+        p, li { margin-bottom: 1rem; }
+        ul, ol { padding-left: 1.5rem; }
+        a { color: var(--primary-accent); text-decoration: none; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+        code {
+            font-family: 'Source Code Pro', monospace; background-color: var(--code-bg);
+            color: var(--code-text); padding: 0.2em 0.4em;
+            border-radius: 0.25rem; font-size: 0.9em;
+        }
+        pre {
+            background-color: var(--code-bg); border-radius: 0.5rem; padding: 1rem;
+            overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
+        }
+        pre code { padding: 0; background: none; }
+        blockquote {
+            margin-left: 0; padding: 1rem 1.5rem; border-left: 4px solid var(--primary-accent);
+            background-color: #f9fafb; color: #4b5563;
+        }
+        blockquote strong {
+            display: block; margin-bottom: 0.5rem; font-weight: 600; color: #111827;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.9rem;
+        }
+        th, td { padding: 0.75rem 1rem; border: 1px solid #d1d5db; text-align: left; }
+        th { background-color: #f3f4f6; font-weight: 600; }
+        .footer {
+            text-align: center; margin-top: 4rem; padding-top: 2rem;
+            border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+    </style>
 </head>
 <body>
-<main>
+    <aside id="left-panel">
+        <div class="logo">Help Guide: <span>Laue</span></div>
+        <nav>
+            <ul id="toc">
+                <li><a href="#introduction" class="active">Introduction</a></li>
+                <li><a href="#orientations">Two Orientations</a></li>
+                <li><a href="#workflow">Typical Workflow</a></li>
+                <li><a href="#ui-reference">UI Reference</a></li>
+                <li><a href="#math-model">Mathematical Model</a></li>
+                <li><a href="#search-algorithm">Search Algorithm</a></li>
+                <li><a href="#peak-finding">Peak Finding</a></li>
+                <li><a href="#report-contents">Report Contents</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#conventions">Conventions & Hints</a></li>
+            </ul>
+        </nav>
+    </aside>
 
-  <h1>Laue Simulator & Indexer — Help & Theory</h1>
+    <main id="main-content">
+        <section id="introduction">
+            <h1>Laue Simulator & Indexer — Help & Theory</h1>
+            
+            <h3>Core Functionality</h3>
+            <ol>
+              <li><strong>Simulation:</strong> Define a lattice and detector to predict a Laue pattern (virtual goniometer + polychromatic beam).</li>
+              <li><strong>Indexing:</strong> Load a real image, pick peaks, and solve the unknown crystal orientation; then simulate and overlay spots for verification.</li>
+              <li><strong>Orientation:</strong> Calculate the goniometer angles required to geometrically align a specific (h,k,l) plane normal with the detector normal.</li>
+            </ol>
+        </section>
 
-<section class="card">
-    <h2>What this tool does</h2>
-    <ol>
-      <li><span class="key">Simulation:</span> Define a lattice and detector to predict a Laue pattern (virtual goniometer + polychromatic beam).</li>
-      <li><span class="key">Indexing:</span> Load a real image, pick peaks, and solve the unknown crystal orientation; then simulate and overlay spots for verification.</li>
-      <li><span class="key">Orientation:</span> Calculate the goniometer angles required to geometrically align a specific (h,k,l) plane normal with the detector normal.</li>
-    </ol>
-  </section>
+        <section id="orientations">
+            <h2>Two Orientations: how rotations are applied</h2>
+            <blockquote>
+                <p><strong>Base Orientation (unknown):</strong> The sample’s as-mounted orientation found by the search. Selecting a solution sets this as the internal base matrix.</p>
+                <p><strong>Goniometer Rotation (knobs):</strong> The <code>X,Y,Z</code> sliders in the <em>Set</em> tab. They rotate <em>on top of</em> the Base Orientation and also respond to canvas drag.</p>
+            </blockquote>
+            <p><b>Total rotation used in simulation</b> = <code>Base</code> then <code>Goniometer</code> (XYZ Euler). After you choose a solution, the sliders are reset to 0 so the display shows the solved orientation. Moving a slider then offsets from that base.</p>
+        </section>
 
-  <section class="card">
-    <h2>Two Orientations: how rotations are applied</h2>
-    <div class="alert">
-      <p><span class="key">Base Orientation</span> (unknown): the sample’s as-mounted orientation found by the search. Selecting a solution sets this as the internal base matrix.</p>
-      <p><span class="key">Goniometer Rotation</span> (knobs): the <code>X,Y,Z</code> sliders in the <em>Set</em> tab. They rotate <em>on top of</em> the Base Orientation and also respond to canvas drag.</p>
-    </div>
-    <p><b>Total rotation used in simulation</b> = <code>Base</code> then <code>Goniometer</code> (XYZ Euler). After you choose a solution, the sliders are reset to 0 so the display shows the solved orientation. Moving a slider then offsets from that base.</p>
-  </section>
+        <section id="workflow">
+            <h2>Typical workflow (indexing)</h2>
+            <ol>
+              <li><b>Analysis → Load Image.</b> If spots are white on black, check <i>Invert Image</i>. Toggle <i>Show Spots</i> to view overlays.</li>
+              <li><b>1. Set Center.</b> Click the beam center. This enables <b>Set Scale</b> and shows a blue reference crosshair.</li>
+              <li><b>Set Scale.</b> Drag the blue crosshair to a known reference. Enter its <code>U (mm), V (mm)</code> from the center. (The app uses separate px/mm for U and V; V is inverted screen-to-mm.)</li>
+              <li><b>Experimental Peaks.</b> Use <i>Find Peaks</i> or <i>Add Peak</i>. Prefer 3–5 peaks of <strong>high symmetry</strong> far apart and across quadrants. You can refine (U, V) values directly in the list.</li>
+              <li><b>Set.</b> Choose Bravais type, enter lattice parameters, wavelength band. Set the <b>Detector Angle</b> (0°=transmission, 180°=back-scatter) and <b>Distance (mm)</b> exactly as in the experiment.</li>
+              <li><b>Search Orientation.</b> Wait for results; then open <b>Solutions</b>, click the best row (lowest Score, best Matches/RMS). The view updates with a yellow overlay.</li>
+              <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool calculates the X/Y/Z sliders needed to <strong>geometrically align</strong> the (h,k,l) <strong>plane normal</strong> to be parallel with the <strong>detector normal</strong> (based on the current <b>Detector Angle</b>).</li>
+              <li><b>Generate Report.</b> Saves a PDF with parameters, peak table, best solution matches (assigned hkl), and a summary of all solutions.</li>
+            </ol>
+        </section>
 
-  <section class="card tint">
-    <h2>Typical workflow (indexing)</h2>
-    <ol>
-      <li><b>Analysis → Load Image.</b> If spots are white on black, check <i>Invert Image</i>. Toggle <i>Show Spots</i> to view overlays.</li>
-      <li><b>1. Set Center.</b> Click the beam center. This enables <b>Set Scale</b> and shows a blue reference crosshair.</li>
-      <li><b>Set Scale.</b> Drag the blue crosshair to a known reference. Enter its <code>U (mm), V (mm)</code> from the center. (The app uses separate px/mm for U and V; V is inverted screen-to-mm.)</li>
-      <li><b>Experimental Peaks.</b> Use <i>Find Peaks</i> or <i>Add Peak</i>. Prefer 3–5 peaks of <b>high symmetry</b> far apart and across quadrants. You can refine (U, V) values directly in the list.</li>
-      <li><b>Set.</b> Choose Bravais type, enter lattice parameters, wavelength band. Set the <b>Detector Angle</b> (0°=transmission, 180°=back-scatter) and <b>Distance (mm)</b> exactly as in the experiment.</li>
-      <li><b>Search Orientation.</b> Wait for results; then open <b>Solutions</b>, click the best row (lowest Score, best Matches/RMS). The view updates with a yellow overlay.</li>
-      <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool calculates the X/Y/Z sliders needed to <b>geometrically align</b> the (h,k,l) <b>plane normal</b> to be parallel with the <b>detector normal</b> (based on the current <b>Detector Angle</b>).</li>
-      <li><b>Generate Report.</b> Saves a PDF with parameters, peak table, best solution matches (assigned hkl), and a summary of all solutions.</li>
-    </ol>
-  </section>
+        <section id="ui-reference">
+            <h2>UI reference (tabs)</h2>
 
-  <section class="card">
-    <h2>UI reference (tabs)</h2>
+            <h3>Set</h3>
+            <ul>
+              <li><b>Lattice & parameters.</b> Bravais choice enables the right fields (e.g., only <code>a</code> for cubic; <code>a,c</code> for tetragonal; monoclinic fixes α=γ=90°, etc.).</li>
+              <li><b>X-ray Source (Laue).</b> <code>λ_min</code>–<code>λ_max</code> (Å) define the polychromatic band.</li>
+              <li><b>Detector Geometry.</b> <code>Angle (°)</code> defines the detector plane's orientation relative to the beam (0° is transmission, 180° is back-scattering). <code>Dist. (mm)</code> is the distance from the sample to the detector plane's center.</li>
+              <li><b>Goniometer Rotation (°).</b> X/Y/Z act relative to the chosen Base Orientation; dragging the canvas adjusts Y/Z.</li>
+            </ul>
 
-    <h3>Set</h3>
-    <ul>
-      <li><b>Lattice & parameters.</b> Bravais choice enables the right fields (e.g., only <code>a</code> for cubic; <code>a,c</code> for tetragonal; monoclinic fixes α=γ=90°, etc.).</li>
-      <li><b>X-ray Source (Laue).</b> <code>λ_min</code>–<code>λ_max</code> (Å) define the polychromatic band.</li>
-      <li><b>Detector Geometry.</b> <code>Angle (°)</code> defines the detector plane's orientation relative to the beam (0° is transmission, 180° is back-scattering). <code>Dist. (mm)</code> is the distance from the sample to the detector plane's center.</li>
-      <li><b>Goniometer Rotation (°).</b> X/Y/Z act relative to the chosen Base Orientation; dragging the canvas adjusts Y/Z.</li>
-    </ul>
+            <h3>Analysis</h3>
+            <ul>
+              <li><b>Set Center</b> → <b>Set Scale.</b> After center, enter a second point’s real coordinates (U, V) to establish px→mm.</li>
+              <li><b>Experimental Peaks.</b> Automatic finder prefers bright, well-separated spots; manual picks allow precise control. Edit (U, V) values inline; click a row label to select and drag on the image.</li>
+            </ul>
 
-    <h3>Analysis</h3>
-    <ul>
-      <li><b>Set Center</b> → <b>Set Scale.</b> After center, enter a second point’s real coordinates (U, V) to establish px→mm.</li>
-      <li><b>Experimental Peaks.</b> Automatic finder prefers bright, well-separated spots; manual picks allow precise control. Edit (U, V) values inline; click a row label to select and drag on the image.</li>
-    </ul>
+            <h3>Solutions</h3>
+            <ul>
+              <li>Rows show <b>Score</b> (lower is better), <b>Matches</b>, <b>RMS (mm)</b>, and <b>Rot (X,Y,Z)</b>. Multiple nearly identical rows are symmetry-equivalent orientations—choose the best group’s top row.</li>
+            </ul>
 
-    <h3>Solutions</h3>
-    <ul>
-      <li>Rows show <b>Score</b> (lower is better), <b>Matches</b>, <b>RMS (mm)</b>, and <b>Rot (X,Y,Z)</b>. Multiple nearly identical rows are symmetry-equivalent orientations—choose the best group’s top row.</li>
-    </ul>
+            <h3>Orient</h3>
+            <ul>
+              <li>Computes goniometer angles to <strong>geometrically align</strong> the chosen (h,k,l) <strong>plane normal</strong> (its reciprocal vector <code><b>g</b></code>) to be parallel with the <strong>detector's normal vector</strong>.
+              <br>• This calculation is dynamic: it reads the <b>Detector Angle</b> from the 'Set' tab and uses its normal as the alignment target.
+              <br>• <strong>Note:</strong> This is a purely geometric alignment. A diffraction spot will generally <em>not</em> appear at the center, as this function no longer solves for the Bragg condition.
+              <br>• This calculation is valid for all angles from 0° (aligns <code><b>g</b></code> with the beam) to 180° (aligns <code><b>g</b></code> anti-parallel to the beam).</li>
+            </ul>
+        </section>
 
-    <h3>Orient</h3>
-    <ul>
-      <li>Computes goniometer angles to <b>geometrically align</b> the chosen (h,k,l) <b>plane normal</b> (its reciprocal vector <code><b>g</b></code>) to be parallel with the <b>detector's normal vector</b>.
-      <br>• This calculation is dynamic: it reads the <b>Detector Angle</b> from the 'Set' tab and uses its normal as the alignment target.
-      <br>• <b>Note:</b> This is a purely geometric alignment. A diffraction spot will generally <em>not</em> appear at the center, as this function no longer solves for the Bragg condition.
-      <br>• This calculation is valid for all angles from 0° (aligns <code><b>g</b></code> with the beam) to 180° (aligns <code><b>g</b></code> anti-parallel to the beam).</li>
-    </ul>
-  </section>
+        <section id="math-model">
+            <h2>Mathematical model</h2>
 
-  <section class="card">
-    <h2>Mathematical model</h2>
-
-    <h3>1) Unit cell → reciprocal basis</h3>
-    <p>Given cell <code>a,b,c</code> and angles <code>α,β,γ</code>, direct vectors are</p>
+            <h3>1) Unit cell → reciprocal basis</h3>
+            <p>Given cell <code>a,b,c</code> and angles <code>α,β,γ</code>, direct vectors are</p>
 <pre><code>// direct basis (Å)
 <b>a</b> = (a, 0, 0)
 <b>b</b> = (b cosγ, b sinγ, 0)
@@ -114,58 +196,57 @@
 
 V = a b c √(1 − cos²α − cos²β − cos²γ + 2 cosα cosβ cosγ)
 </code></pre>
-    <p>Reciprocal basis vectors (Å⁻¹) are</p>
+            <p>Reciprocal basis vectors (Å⁻¹) are</p>
 <pre><code><b>a*</b> = (<b>b</b> × <b>c</b>)/V ,  <b>b*</b> = (<b>c</b> × <b>a</b>)/V ,  <b>c*</b> = (<b>a</b> × <b>b</b>)/V
 </code></pre>
-    <p>Any reflection <code>(h,k,l)</code> maps to <code><b>g</b>₀ = h <b>a*</b> + k <b>b*</b> + l <b>c*</b></code>.</p>
+            <p>Any reflection <code>(h,k,l)</code> maps to <code><b>g</b>₀ = h <b>a*</b> + k <b>b*</b> + l <b>c*</b></code>.</p>
 
-    <h3>2) Systematic absences (Bravais rules)</h3>
-    <table>
-      <thead><tr><th>Type</th><th>Condition</th></tr></thead>
-      <tbody>
-        <tr><td>P</td><td>all (h,k,l) allowed</td></tr>
-        <tr><td>I</td><td><code>h + k + l</code> even</td></tr>
-        <tr><td>F</td><td>h, k, l all even or all odd</td></tr>
-        <tr><td>C</td><td><code>h + k</code> even</td></tr>
-        <tr><td>R</td><td><code>−h + k + l ≡ 0 (mod 3)</code></td></tr>
-      </tbody>
-    </table>
+            <h3>2) Systematic absences (Bravais rules)</h3>
+            <table>
+              <thead><tr><th>Type</th><th>Condition</th></tr></thead>
+              <tbody>
+                <tr><td>P</td><td>all (h,k,l) allowed</td></tr>
+                <tr><td>I</td><td><code>h + k + l</code> even</td></tr>
+                <tr><td>F</td><td>h, k, l all even or all odd</td></tr>
+                <tr><td>C</td><td><code>h + k</code> even</td></tr>
+                <tr><td>R</td><td><code>−h + k + l ≡ 0 (mod 3)</code></td></tr>
+              </tbody>
+            </table>
 
-    <h3>3) Orientation stacking</h3>
-    <p>Reflections are rotated first by the <b>Base Orientation</b> <code>U</code> (from the solver), then by the goniometer Euler rotation <code>R(X,Y,Z)</code>:</p>
+            <h3>3) Orientation stacking</h3>
+            <p>Reflections are rotated first by the <b>Base Orientation</b> <code>U</code> (from the solver), then by the goniometer Euler rotation <code>R(X,Y,Z)</code>:</p>
 <pre><code><b>g</b> = R(X,Y,Z) · U · <b>g</b>₀
 </code></pre>
 
-    <h3>4) Laue condition, wavelength band, and detector hit</h3>
-    <p>Beam points along +X. With unit wavevectors <code>k̂_in = (1,0,0)</code> and <code>k̂_out</code>, define the (normalized) scattering vector <code>ĝ = k̂_out − k̂_in</code>. For a given lattice vector <code><b>g</b></code> (Å⁻¹), elastic diffraction requires</p>
+            <h3>4) Laue condition, wavelength band, and detector hit</h3>
+            <p>Beam points along +X. With unit wavevectors <code>k̂_in = (1,0,0)</code> and <code>k̂_out</code>, define the (normalized) scattering vector <code>ĝ = k̂_out − k̂_in</code>. For a given lattice vector <code><b>g</b></code> (Å⁻¹), elastic diffraction requires</p>
 <pre><code>2 <b>k</b>_in · <b>g</b> + |<b>g</b>|² = 0 ,  with <b>k</b>_in = (1/λ, 0, 0)
 </code></pre>
-    <p>Solving for the required wavenumber gives</p>
+            <p>Solving for the required wavenumber gives</p>
 <pre><code><b>k</b> = − |<b>g</b>|² / (2 <b>g</b>ₓ)
 </code></pre>
-    <ul>
-      <li>The polychromatic band is <code>k ∈ [1/λ_max, 1/λ_min]</code>. If <code>k</code> falls outside, the spot is culled.</li>
-    </ul>
-    
-    <p>The diffracted ray is <code><b>k</b>_out = <b>g</b> + (k,0,0)</code>. The detector plane is defined by its angle <code>φ</code> (0° to 180°) and distance <code>D</code>.</p>
+            <ul>
+              <li>The polychromatic band is <code>k ∈ [1/λ_max, 1/λ_min]</code>. If <code>k</code> falls outside, the spot is culled.</li>
+            </ul>
+            
+            <p>The diffracted ray is <code><b>k</b>_out = <b>g</b> + (k,0,0)</code>. The detector plane is defined by its angle <code>φ</code> (0° to 180°) and distance <code>D</code>.</p>
 <pre><code>// Detector plane normal and u-axis (horizontal)
 <b>n</b>̂ = (cosφ, sinφ, 0)
 <b>u</b>̂ = (-sinφ, cosφ, 0)
 </code></pre>
-    <p>The intersection <code>P_hit</code> is found by solving <code>t</code> for the ray <code>P(t) = t · k_out</code> and the plane <code><b>P</b> · <b>n</b>̂ = D</code>.</p>
-    <ul>
-      <li>This gives <code>t = D / (k_out · n̂)</code>.</li>
-      <li>A hit is valid only if <code>t > 0</code> (intersection is in front of the sample, pointing toward the detector).</li>
-      <li>The (U,V) coordinates on the detector are the projection of <code>P_hit</code>:</li>
-    </ul>
+            <p>The intersection <code>P_hit</code> is found by solving <code>t</code> for the ray <code>P(t) = t · k_out</code> and the plane <code><b>P</b> · <b>n</b>̂ = D</code>.</p>
+            <ul>
+              <li>This gives <code>t = D / (k_out · n̂)</code>.</li>
+              <li>A hit is valid only if <code>t > 0</code> (intersection is in front of the sample, pointing toward the detector).</li>
+              <li>The (U,V) coordinates on the detector are the projection of <code>P_hit</code>:</li>
+            </ul>
 <pre><code>v = <b>P</b>_hit_z   // Vertical coordinate is the Z component
 u = <b>P</b>_hit · <b>u</b>̂   // Horizontal coordinate
 (x₂d, y₂d) = (u, v) // These are the plotted (mm) coordinates
 </code></pre>
 
-
-    <h3>5) Experimental geometry → scattering vectors</h3>
-    <p>From a measured spot at detector coordinates <code>(u_mm, v_mm)</code> relative to the center, we reconstruct the 3D scattering vector.</p>
+            <h3>5) Experimental geometry → scattering vectors</h3>
+            <p>From a measured spot at detector coordinates <code>(u_mm, v_mm)</code> relative to the center, we reconstruct the 3D scattering vector.</p>
 <pre><code>// φ is the detector angle, D is distance
 <b>n</b>̂ = (cosφ, sinφ, 0)
 <b>u</b>̂ = (-sinφ, cosφ, 0)
@@ -179,85 +260,155 @@ u = <b>P</b>_hit · <b>u</b>̂   // Horizontal coordinate
 <b>g</b>̂_exp = normalize( <b>k</b>̂_out − (1,0,0) )  // used for orientation solving
 </code></pre>
 
-    <h3>6) Pixel ↔ millimeter conversion</h3>
-    <p>After you click the beam center (pixels) and place a <i>scale point</i> with known (mm), the app sets independent scale factors for U and V:</p>
+            <h3>6) Pixel ↔ millimeter conversion</h3>
+            <p>After you click the beam center (pixels) and place a <i>scale point</i> with known (mm), the app sets independent scale factors for U and V:</p>
 <pre><code>pixels_per_mm_x = (x_px − x0_px) / U_mm
 pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
 </code></pre>
+        </section>
 
-  </section>
+        <section id="search-algorithm">
+            <h2>Orientation search (what “Search Orientation” does)</h2>
+            <ol>
+              <li><b>Gather</b> experimental peaks ... </li>
+              <li><b>Build HKL library</b> ... </li>
+              <li><b>Angle pairing</b>: ... </li>
+              <li><b>Candidate orientation</b>: ... </li>
+              <li><b>Score it</b>: ... </li>
+              <li><b>Keep top-N</b> ... </li>
+            </ol>
 
-  <section class="card">
-    <h2>Orientation search (what “Search Orientation” does)</h2>
-    <ol>
-      <li><b>Gather</b> experimental peaks ... </li>
-      <li><b>Build HKL library</b> ... </li>
-      <li><b>Angle pairing</b>: ... </li>
-      <li><b>Candidate orientation</b>: ... </li>
-      <li><b>Score it</b>: ... </li>
-      <li><b>Keep top-N</b> ... </li>
-    </ol>
+            <p>
+              <strong>Note on high-index reflections:</strong> The search uses two different (h,k,l) ranges.
+              <ul>
+                <li><b>Seeding (Step 2-3):</b> A small library (e.g., |h,k,l| ≤ 2) is used to quickly find <i>pairs</i> of angles that match your experimental data.</li>
+                <li><b>Scoring (Step 5):</b> A large library (e.g., |h,k,l| ≤ 12) is used to generate a <i>full</i> simulation pattern to score the candidate orientation.</li>
+              </ul>
+              This means a high-index experimental spot (like a (3,1,0)) will not help <i>seed</i> the search, but it <b>will</b> be correctly identified and used to <i>confirm</i> and <i>score</i> a good solution. The search only requires at least one <i>pair</i> of your experimental spots to fall within the small "seeding" range.
+            </p>
+            <p>This strategy is robust to small peak sets and naturally yields symmetry-related orientations (e.g., cubic equivalences).</p>
+        </section>
 
-    <p>
-      <span class="key">Note on high-index reflections:</span> The search uses two different (h,k,l) ranges.
-      <ul>
-        <li><b>Seeding (Step 2-3):</b> A small library (e.g., |h,k,l| ≤ 2) is used to quickly find <i>pairs</i> of angles that match your experimental data.</li>
-        <li><b>Scoring (Step 5):</b> A large library (e.g., |h,k,l| ≤ 12) is used to generate a <i>full</i> simulation pattern to score the candidate orientation.</li>
-      </ul>
-      This means a high-index experimental spot (like a (3,1,0)) will not help <i>seed</i> the search, but it <b>will</b> be correctly identified and used to <i>confirm</i> and <i>score</i> a good solution. The search only requires at least one <i>pair</i> of your experimental spots to fall within the small "seeding" range.
-    </p>
-    <p class="small">This strategy is robust to small peak sets and naturally yields symmetry-related orientations (e.g., cubic equivalences).</p>
-  </section>
-  <section class="card">
-    <h2>Peak finder details</h2>
-    <ul>
-      <li>Grayscale image; optional inversion. Threshold at ~90% of the frame’s max intensity.</li>
-      <li>Local-max test in a small neighborhood; exclude a central disk (~5 mm radius).</li>
-      <li>Balanced selection: take strongest candidates per quadrant to seed indexing.</li>
-      <li>You can always refine by manual adding/dragging spots.</li>
-    </ul>
-  </section>
+        <section id="peak-finding">
+            <h2>Peak finder details</h2>
+            <ul>
+              <li>Grayscale image; optional inversion. Threshold at ~90% of the frame’s max intensity.</li>
+              <li>Local-max test in a small neighborhood; exclude a central disk (~5 mm radius).</li>
+              <li>Balanced selection: take strongest candidates per quadrant to seed indexing.</li>
+              <li>You can always refine by manual adding/dragging spots.</li>
+            </ul>
+        </section>
 
-  <section class="card">
-    <h2>Report contents</h2>
-    <ol>
-      <li>Detector snapshot with overlays.</li>
-      <li>Simulation + analysis parameters (lattice, λ band, D, Angle, center/scale).</li>
-      <li>Experimental peak list in (U, V) mm (+ raw pixels).</li>
-      <li><b>Best solution details</b>: each peak’s assigned <code>(h,k,l)</code>, simulated (U, V) and error (mm).</li>
-      <li>All solutions summary.</li>
-    </ol>
-  </section>
+        <section id="report-contents">
+            <h2>Report contents</h2>
+            <ol>
+              <li>Detector snapshot with overlays.</li>
+              <li>Simulation + analysis parameters (lattice, λ band, D, Angle, center/scale).</li>
+              <li>Experimental peak list in (U, V) mm (+ raw pixels).</li>
+              <li><b>Best solution details</b>: each peak’s assigned <code>(h,k,l)</code>, simulated (U, V) and error (mm).</li>
+              <li>All solutions summary.</li>
+            </ol>
+        </section>
+        
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+            
+            <h3>No or poor solutions</h3>
+            <ul>
+              <li>Verify Bravais type and lattice parameters.</li>
+              <li>Check detector <b>Distance</b> and <b>Angle</b> (e.g., 0° for transmission, 180° for back-scatter).</li>
+              <li>Re-do center/scale carefully; a wrong scale ruins geometry.</li>
+              <li>Use clear, well-separated peaks (3+ across different quadrants). Try <i>Invert Image</i> if the finder misses peaks.</li>
+            </ul>
+            
+            <h3>A spot <em>doesn't</em> appear after “Orient to (h,k,l)”</h3>
+            <ul>
+              <li><b>This is the expected behavior.</b> The 'Orient' function now performs a purely <strong>geometric alignment</strong>, making the (h,k,l) plane normal parallel to the detector normal. It <em>no longer</em> calculates the angles required for a <strong>diffraction spot</strong> (the Bragg condition).</li>
+              <li>A spot will only appear at the center if this geometric alignment also happens to satisfy the Bragg condition for a wavelength in your source's range (which is only guaranteed at 180°).</li>
+            </ul>
+        </section>
 
-  <section class="card">
-    <h2>Troubleshooting</h2>
-    <h3>No or poor solutions</h3>
-    <ul>
-      <li>Verify Bravais type and lattice parameters.</li>
-      <li>Check detector <b>Distance</b> and <b>Angle</b> (e.g., 0° for transmission, 180° for back-scatter).</li>
-      <li>Re-do center/scale carefully; a wrong scale ruins geometry.</li>
-      <li>Use clear, well-separated peaks (3+ across different quadrants). Try <i>Invert Image</i> if the finder misses peaks.</li>
-    </ul>
-    
-    <h3>A spot <em>doesn't</em> appear after “Orient to (h,k,l)”</h3>
-    <ul>
-      <li><b>This is the expected behavior.</b> The 'Orient' function now performs a purely <b>geometric alignment</b>, making the (h,k,l) plane normal parallel to the detector normal. It <em>no longer</em> calculates the angles required for a <b>diffraction spot</b> (the Bragg condition).</li>
-      <li>A spot will only appear at the center if this geometric alignment also happens to satisfy the Bragg condition for a wavelength in your source's range (which is only guaranteed at 180°).</li>
-    </ul>
-  </section>
+        <section id="conventions">
+            <h2>Conventions & hints</h2>
+            <ul>
+              <li><b>Coordinate System:</b> The incident beam is along the <b>+X</b> axis. The lab's vertical direction is <b>+Z</b> (mapping to the detector's +V coordinate). The detector plane's position is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
+              <li>In the detector's (U, V) coordinate system in mm (handled by the scale).</li>
+              <li>The (U, V) coordinates can be manually edited (so it is the scale).</li>
+              <li>Dragging the canvas rotates Y/Z goniometer axes; use sliders for precise values.</li>
+              <li>Use a realistic λ band (e.g., 0.2–3.0 Å) and a correct D to reduce false solutions.</li>
+            </ul>
+            <div class="footer">
+                <p>Help Guide updated on 02 Nov 2025 by an AI assistant.</p>
+            </div>
+        </section>
 
-  <section class="card">
-    <h2>Conventions & hints</h2>
-    <ul>
-      <li><b>Coordinate System:</b> The incident beam is along the <b>+X</b> axis. The lab's vertical direction is <b>+Z</b> (mapping to the detector's +V coordinate). The detector plane's position is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
-      <li>On the image, +Y is <em>down</em>. In the detector's (U, V) coordinate system, +V is <em>up</em> (handled by the scale sign).</li>
-      <li>Dragging the canvas rotates Y/Z goniometer axes; use sliders for precise values.</li>
-      <li>Use a realistic λ band (e.g., 0.2–3.0 Å) and a correct D to reduce false solutions.</li>
-    </ul>
-  </section>
+    </main>
 
-  <p class="small"> This document was created by an AI Assistant, November 2, 2025.</p>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('#toc a');
+        const mainContent = document.getElementById('main-content');
 
-</main>
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    navLinks.forEach(link => link.classList.remove('active'));
+                    const activeLink = document.querySelector(`#toc a[href="#${id}"]`);
+                    if (activeLink) activeLink.classList.add('active');
+                }
+            });
+        }, { root: mainContent, rootMargin: "0px 0px -80% 0px" });
+
+        sections.forEach(section => observer.observe(section));
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                navLinks.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                if (targetElement) {
+                    mainContent.scrollTo({
+                        top: targetElement.offsetTop - 32,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        const updateActiveLink = () => {
+            let currentActive = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top >= 0 && rect.top <= mainContent.clientHeight * 0.2) {
+                    currentActive = section.getAttribute('id');
+                }
+            });
+
+            if (currentActive) {
+                navLinks.forEach(link => link.classList.remove('active'));
+                const activeLink = document.querySelector(`#toc a[href="#${currentActive}"]`);
+                if (activeLink) activeLink.classList.add('active');
+            } else {
+                // If no section is clearly active at the top, default to the first one
+                 if (mainContent.scrollTop < sections[0].offsetTop + sections[0].offsetHeight) {
+                     navLinks.forEach(link => link.classList.remove('active'));
+                     if (navLinks.length > 0) navLinks[0].classList.add('active');
+                 }
+            }
+        };
+
+        // Update active link on scroll
+        mainContent.addEventListener('scroll', updateActiveLink);
+
+        // Initial update after load
+        setTimeout(updateActiveLink, 150);
+    });
+</script>
+
 </body>
 </html>
