@@ -39,11 +39,12 @@
 
   <h1>Laue Simulator & Indexer — Help & Theory</h1>
 
-  <section class="card">
+<section class="card">
     <h2>What this tool does</h2>
     <ol>
-      <li><span class="key">Simulation:</span> define a lattice and detector to predict a Laue pattern (virtual goniometer + polychromatic beam).</li>
-      <li><span class="key">Indexing:</span> load a real image, pick peaks, and solve the unknown crystal orientation; then simulate and overlay spots for verification.</li>
+      <li><span class="key">Simulation:</span> Define a lattice and detector to predict a Laue pattern (virtual goniometer + polychromatic beam).</li>
+      <li><span class="key">Indexing:</span> Load a real image, pick peaks, and solve the unknown crystal orientation; then simulate and overlay spots for verification.</li>
+      <li><span class="key">Orientation:</span> Calculate the goniometer angles required to geometrically align a specific (h,k,l) plane normal with the detector normal.</li>
     </ol>
   </section>
 
@@ -62,10 +63,10 @@
       <li><b>Analysis → Load Image.</b> If spots are white on black, check <i>Invert Image</i>. Toggle <i>Show Spots</i> to view overlays.</li>
       <li><b>1. Set Center.</b> Click the beam center. This enables <b>Set Scale</b> and shows a blue reference crosshair.</li>
       <li><b>Set Scale.</b> Drag the blue crosshair to a known reference. Enter its <code>U (mm), V (mm)</code> from the center. (The app uses separate px/mm for U and V; V is inverted screen-to-mm.)</li>
-      <li><b>Experimental Peaks.</b> Use <i>Find Peaks</i> or <i>Add Peak</i>. Prefer 3–8 peaks far apart and across quadrants. You can refine (U, V) values directly in the list.</li>
+      <li><b>Experimental Peaks.</b> Use <i>Find Peaks</i> or <i>Add Peak</i>. Prefer 3–5 peaks of <b>high symmetry</b> far apart and across quadrants. You can refine (U, V) values directly in the list.</li>
       <li><b>Set.</b> Choose Bravais type, enter lattice parameters, wavelength band. Set the <b>Detector Angle</b> (0°=transmission, 180°=back-scatter) and <b>Distance (mm)</b> exactly as in the experiment.</li>
       <li><b>Search Orientation.</b> Wait for results; then open <b>Solutions</b>, click the best row (lowest Score, best Matches/RMS). The view updates with a yellow overlay.</li>
-      <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool calculates the X/Y/Z sliders needed to align that (h,k,l) spot to the <b>center of the detector</b> (based on the current <b>Detector Angle</b>).</li>
+      <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool calculates the X/Y/Z sliders needed to <b>geometrically align</b> the (h,k,l) <b>plane normal</b> to be parallel with the <b>detector normal</b> (based on the current <b>Detector Angle</b>).</li>
       <li><b>Generate Report.</b> Saves a PDF with parameters, peak table, best solution matches (assigned hkl), and a summary of all solutions.</li>
     </ol>
   </section>
@@ -94,9 +95,10 @@
 
     <h3>Orient</h3>
     <ul>
-      <li>Computes goniometer angles to align the chosen (h,k,l) reflection to the <b>center of the detector</b>. This calculation is dynamic: it reads the <b>Detector Angle</b> from the 'Set' tab and aligns the (h,k,l) reciprocal vector with the correct scattering vector for that position.
-      <br>• The spot will only appear if its required wavelength is within the 'X-ray Source' range.
-      <br>• This calculation will fail for a 0° detector, as that position is the direct beam, not a reflection.</li>
+      <li>Computes goniometer angles to <b>geometrically align</b> the chosen (h,k,l) <b>plane normal</b> (its reciprocal vector <code><b>g</b></code>) to be parallel with the <b>detector's normal vector</b>.
+      <br>• This calculation is dynamic: it reads the <b>Detector Angle</b> from the 'Set' tab and uses its normal as the alignment target.
+      <br>• <b>Note:</b> This is a purely geometric alignment. A diffraction spot will generally <em>not</em> appear at the center, as this function no longer solves for the Bragg condition.
+      <br>• This calculation is valid for all angles from 0° (aligns <code><b>g</b></code> with the beam) to 180° (aligns <code><b>g</b></code> anti-parallel to the beam).</li>
     </ul>
   </section>
 
@@ -188,16 +190,24 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
   <section class="card">
     <h2>Orientation search (what “Search Orientation” does)</h2>
     <ol>
-      <li><b>Gather</b> experimental peaks (in mm) and convert to unit scattering vectors <code>ĝ_exp</code> using the detector geometry (Angle, Distance).</li>
-      <li><b>Build HKL library</b> with low indices only (|h|,|k|,|l| ≤ 2) obeying the Bravais rule, and compute normalized <code>ĝ_hkl</code>. Lower Miller sums are prioritized.</li>
-      <li><b>Angle pairing</b>: for every pair of experimental vectors, compare the inter-vector angle to all HKL-pair angles; keep pairs within ~5°.</li>
-      <li><b>Candidate orientation</b>: for each matched pair, compute a rigid rotation via a 2-vector Kabsch construction that maps <code>{ĝ_hkl}</code> → <code>{ĝ_exp}</code>.</li>
-      <li><b>Score it</b>: apply the candidate as <em>Base</em>, simulate with current settings, project to mm, and compute nearest-neighbor errors to experimental peaks. Tolerance ~4 mm; score uses RMS / matches.</li>
-      <li><b>Keep top-N</b> candidates, sort by score, and display all symmetry-equivalent solutions in the <b>Solutions</b> tab. Selecting a row sets the Base, resets goniometer sliders to 0, and updates the overlay.</li>
+      <li><b>Gather</b> experimental peaks ... </li>
+      <li><b>Build HKL library</b> ... </li>
+      <li><b>Angle pairing</b>: ... </li>
+      <li><b>Candidate orientation</b>: ... </li>
+      <li><b>Score it</b>: ... </li>
+      <li><b>Keep top-N</b> ... </li>
     </ol>
+
+    <p>
+      <span class="key">Note on high-index reflections:</span> The search uses two different (h,k,l) ranges.
+      <ul>
+        <li><b>Seeding (Step 2-3):</b> A small library (e.g., |h,k,l| ≤ 2) is used to quickly find <i>pairs</i> of angles that match your experimental data.</li>
+        <li><b>Scoring (Step 5):</b> A large library (e.g., |h,k,l| ≤ 12) is used to generate a <i>full</i> simulation pattern to score the candidate orientation.</li>
+      </ul>
+      This means a high-index experimental spot (like a (3,1,0)) will not help <i>seed</i> the search, but it <b>will</b> be correctly identified and used to <i>confirm</i> and <i>score</i> a good solution. The search only requires at least one <i>pair</i> of your experimental spots to fall within the small "seeding" range.
+    </p>
     <p class="small">This strategy is robust to small peak sets and naturally yields symmetry-related orientations (e.g., cubic equivalences).</p>
   </section>
-
   <section class="card">
     <h2>Peak finder details</h2>
     <ul>
@@ -229,9 +239,10 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
       <li>Use clear, well-separated peaks (3+ across different quadrants). Try <i>Invert Image</i> if the finder misses peaks.</li>
     </ul>
     
-    <h3>Spot not visible after “Orient to (h,k,l)”</h3>
+    <h3>A spot <em>doesn't</em> appear after “Orient to (h,k,l)”</h3>
     <ul>
-      <li>This can happen if the wavelength ($\lambda$) required for that reflection, at that specific detector angle, is outside the <b>'X-ray Source' (λ_min, λ_max) band</b>. The 'Orient' tab will show a status message with the required $\lambda$, allowing you to check if it's in range.</li>
+      <li><b>This is the expected behavior.</b> The 'Orient' function now performs a purely <b>geometric alignment</b>, making the (h,k,l) plane normal parallel to the detector normal. It <em>no longer</em> calculates the angles required for a <b>diffraction spot</b> (the Bragg condition).</li>
+      <li>A spot will only appear at the center if this geometric alignment also happens to satisfy the Bragg condition for a wavelength in your source's range (which is only guaranteed at 180°).</li>
     </ul>
   </section>
 
@@ -245,7 +256,7 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
     </ul>
   </section>
 
-  <p class="small"> This document was created by an AI Assistant, November 1, 2025.</p>
+  <p class="small"> This document was created by an AI Assistant, November 2, 2025.</p>
 
 </main>
 </body>

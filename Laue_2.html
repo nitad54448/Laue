@@ -547,7 +547,7 @@
                     <div class="info-section">
                         <span class="form-label">Orient to (h,k,l)</span>
                         <p class="text-sm text-gray-600 mb-3" style="color: var(--text-dark);">
-                            Align a specific (h,k,l) reflection to the center of the detector.
+                            Align a specific (h,k,l) plane parallel to the detector.
                         </p>
                         <div class="form-input-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                             <div>
@@ -590,7 +590,7 @@
                          <p class="text-sm text-gray-600" style="color: var(--text-dark);">
                             This calculates the goniometer angles (in the 'Set' tab) required to rotate from the *current base orientation* to the new target.
                             <br><br>
-                            • The (h,k,l) vector is aligned to the **-X axis**. The aligned (h,k,l) spot will only be visible if its required wavelength is within the "X-Ray Source" range specified in the 'Set' tab.
+                            • The (h,k,l) plane is parallel to the detector. A (h,k,l) spot will only be visible if its required wavelength is within the "X-Ray Source" range specified in the 'Set' tab.
                          </p>
                     </div>
                 </div>
@@ -1381,6 +1381,7 @@
             
             // 1. Get experimental parameters
             const D = getValidatedNumericInput('detectorDistance', 1, 1000, 36);
+          
             let angle_deg = getValidatedNumericInput('detectorAngle', 0, 180, 180);
            
             const expSpots_mm = experimentalSpots.map(p => ({
@@ -1713,23 +1714,22 @@
             const vFrom = g_unrotated.clone().normalize();
 
             // 4. Define target vector
+
+
+
+// 4. Define target vector (MODIFIED: Target is now the detector normal)
 // Read the current detector angle
 let angle_deg = getValidatedNumericInput('detectorAngle', 0, 180, 180);
 const phi_D_rad = THREE.MathUtils.degToRad(angle_deg);
+const cosPhi = Math.cos(phi_D_rad);
+const sinPhi = Math.sin(phi_D_rad);
 
-// Calculate the correct scattering vector direction
-const vTo = new THREE.Vector3(
-    Math.cos(phi_D_rad) - 1, 
-    Math.sin(phi_D_rad), 
-    0
-);
+// The target vector vTo is now the detector normal itself
+const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
 
-// Handle the 0-degree (transmission) case
-if (vTo.lengthSq() < 1e-9) {
-    orientStatusDiv.textContent = 'Error: Cannot align to 0° (direct beam).';
-    return;
-}
-vTo.normalize();
+// This vector always has length 1 (it's on the unit circle),
+// so we no longer need to check for a zero-length vector.
+// The 0-degree case (vTo = <1,0,0>) is now perfectly valid.
 
 
 
@@ -1776,34 +1776,26 @@ vTo.normalize();
 
 
 
-            // 10. Update status message
-            const bravaisKey = document.getElementById('bravaisLattice').value;
-            const bravaisType = bravaisLatticeOptions[bravaisKey].type;
 
-            // --- MODIFIED: Validate inputs ---
-            let lambda_min = getValidatedNumericInput('lambda_min', 0.1, 20.0, 0.2);
-            let lambda_max = getValidatedNumericInput('lambda_max', 0.1, 20.0, 3.0);
+
+
+
+
+            // 10. Update status message (MODIFIED: Physics check removed)
+            let statusMsg = `Goniometer set to align (${h},${k},${l}) normal parallel to the ${angle_deg.toFixed(1)}° detector normal.`;
             
-            // Cross-check: ensure min is less than max
-            if (lambda_min >= lambda_max) {
-                lambda_min = lambda_max - 0.1;
-                if (lambda_min < 0.1) lambda_min = 0.1;
-            }
-
-        
-            let statusMsg = `Goniometer set for ${angle_deg.toFixed(1)}° detector. `;
-
-           // Check if the spot is visible
-            // Required lambda for 180-deg backscatter: 2 * d = lambda -> lambda = 2 / |g|
-            const required_lambda = 2 / g_length;
-            if (!isReflectionAllowed(h, k, l, bravaisType)) {
-                statusMsg = `Warning: (${h},${k},${l}) is forbidden. `;
-            } else if (required_lambda < lambda_min || required_lambda > lambda_max) {
-                statusMsg += `Note: Spot may not appear. Required λ (${required_lambda.toFixed(3)} Å) is outside range [${lambda_min}, ${lambda_max}].`;
-            } else {
-                statusMsg += `Required λ: ${required_lambda.toFixed(3)} Å.`;
-            }
+            // We are calculating a geometric alignment, not a diffraction
+            // condition, so the wavelength check is no longer relevant.
             orientStatusDiv.textContent = statusMsg;
+
+
+
+
+
+
+
+
+
         }
 
 
@@ -1868,7 +1860,7 @@ vTo.normalize();
                 yPos += 10;
                 
                 addParamRow('URL:', window.location.href);
-                addParamRow('Version:', '3.0 (General Detector), November 1, 2025');
+                addParamRow('Version:', '3.1 (General Detector), November 2, 2025');
    //             yPos += 5;
               
                 addParamRow('Generated:', timestamp);
