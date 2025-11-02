@@ -65,7 +65,7 @@
       <li><b>Experimental Peaks.</b> Use <i>Find Peaks</i> or <i>Add Peak</i>. Prefer 3–8 peaks far apart and across quadrants. You can refine (U, V) values directly in the list.</li>
       <li><b>Set.</b> Choose Bravais type, enter lattice parameters, wavelength band. Set the <b>Detector Angle</b> (0°=transmission, 180°=back-scatter) and <b>Distance (mm)</b> exactly as in the experiment.</li>
       <li><b>Search Orientation.</b> Wait for results; then open <b>Solutions</b>, click the best row (lowest Score, best Matches/RMS). The view updates with a yellow overlay.</li>
-      <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool fills the X/Y/Z sliders needed to align that axis with the beam.</li>
+      <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool calculates the X/Y/Z sliders needed to align that (h,k,l) spot to the <b>center of the detector</b> (based on the current <b>Detector Angle</b>).</li>
       <li><b>Generate Report.</b> Saves a PDF with parameters, peak table, best solution matches (assigned hkl), and a summary of all solutions.</li>
     </ol>
   </section>
@@ -94,7 +94,9 @@
 
     <h3>Orient</h3>
     <ul>
-      <li>Computes goniometer angles from current Base Orientation to align the chosen (h,k,l) vector with the <b>−X axis</b> (anti-parallel to the incident beam). This is the condition for 180° back-reflection. The spot will only appear at the detector center if the <b>Detector Angle</b> is also set to 180°.</li>
+      <li>Computes goniometer angles to align the chosen (h,k,l) reflection to the <b>center of the detector</b>. This calculation is dynamic: it reads the <b>Detector Angle</b> from the 'Set' tab and aligns the (h,k,l) reciprocal vector with the correct scattering vector for that position.
+      <br>• The spot will only appear if its required wavelength is within the 'X-ray Source' range.
+      <br>• This calculation will fail for a 0° detector, as that position is the direct beam, not a reflection.</li>
     </ul>
   </section>
 
@@ -104,16 +106,16 @@
     <h3>1) Unit cell → reciprocal basis</h3>
     <p>Given cell <code>a,b,c</code> and angles <code>α,β,γ</code>, direct vectors are</p>
 <pre><code>// direct basis (Å)
-a⃗ = (a, 0, 0)
-b⃗ = (b cosγ, b sinγ, 0)
-c⃗ = (c cosβ, c (cosα − cosβ cosγ)/sinγ, V/(a b sinγ))
+<b>a</b> = (a, 0, 0)
+<b>b</b> = (b cosγ, b sinγ, 0)
+<b>c</b> = (c cosβ, c (cosα − cosβ cosγ)/sinγ, V/(a b sinγ))
 
 V = a b c √(1 − cos²α − cos²β − cos²γ + 2 cosα cosβ cosγ)
 </code></pre>
     <p>Reciprocal basis vectors (Å⁻¹) are</p>
-<pre><code>a* = (b⃗ × c⃗)/V ,  b* = (c⃗ × a⃗)/V ,  c* = (a⃗ × b⃗)/V
+<pre><code><b>a*</b> = (<b>b</b> × <b>c</b>)/V ,  <b>b*</b> = (<b>c</b> × <b>a</b>)/V ,  <b>c*</b> = (<b>a</b> × <b>b</b>)/V
 </code></pre>
-    <p>Any reflection <code>(h,k,l)</code> maps to <code>g₀ = h a* + k b* + l c*</code>.</p>
+    <p>Any reflection <code>(h,k,l)</code> maps to <code><b>g</b>₀ = h <b>a*</b> + k <b>b*</b> + l <b>c*</b></code>.</p>
 
     <h3>2) Systematic absences (Bravais rules)</h3>
     <table>
@@ -129,33 +131,33 @@ V = a b c √(1 − cos²α − cos²β − cos²γ + 2 cosα cosβ cosγ)
 
     <h3>3) Orientation stacking</h3>
     <p>Reflections are rotated first by the <b>Base Orientation</b> <code>U</code> (from the solver), then by the goniometer Euler rotation <code>R(X,Y,Z)</code>:</p>
-<pre><code>g = R(X,Y,Z) · U · g₀
+<pre><code><b>g</b> = R(X,Y,Z) · U · <b>g</b>₀
 </code></pre>
 
     <h3>4) Laue condition, wavelength band, and detector hit</h3>
-    <p>Beam points along +X. With unit wavevectors <code>k̂_in = (1,0,0)</code> and <code>k̂_out</code>, define the (normalized) scattering vector <code>ĝ = k̂_out − k̂_in</code>. For a given lattice vector <code>g</code> (Å⁻¹), elastic diffraction requires</p>
-<pre><code>2 k · g + |g|² = 0 ,  with  k = 1/λ  (Å⁻¹)
+    <p>Beam points along +X. With unit wavevectors <code>k̂_in = (1,0,0)</code> and <code>k̂_out</code>, define the (normalized) scattering vector <code>ĝ = k̂_out − k̂_in</code>. For a given lattice vector <code><b>g</b></code> (Å⁻¹), elastic diffraction requires</p>
+<pre><code>2 <b>k</b>_in · <b>g</b> + |<b>g</b>|² = 0 ,  with <b>k</b>_in = (1/λ, 0, 0)
 </code></pre>
     <p>Solving for the required wavenumber gives</p>
-<pre><code>k = − |g|² / (2 gₓ)
+<pre><code><b>k</b> = − |<b>g</b>|² / (2 <b>g</b>ₓ)
 </code></pre>
     <ul>
       <li>The polychromatic band is <code>k ∈ [1/λ_max, 1/λ_min]</code>. If <code>k</code> falls outside, the spot is culled.</li>
     </ul>
     
-    <p>The diffracted ray is <code>k_out = g + (k,0,0)</code>. The detector plane is defined by its angle <code>φ</code> (0° to 180°) and distance <code>D</code>.</p>
+    <p>The diffracted ray is <code><b>k</b>_out = <b>g</b> + (k,0,0)</code>. The detector plane is defined by its angle <code>φ</code> (0° to 180°) and distance <code>D</code>.</p>
 <pre><code>// Detector plane normal and u-axis (horizontal)
-n̂ = (cosφ, sinφ, 0)
-û = (-sinφ, cosφ, 0)
+<b>n</b>̂ = (cosφ, sinφ, 0)
+<b>u</b>̂ = (-sinφ, cosφ, 0)
 </code></pre>
-    <p>The intersection <code>P_hit</code> is found by solving <code>t</code> for the ray <code>P(t) = t · k_out</code> and the plane <code>P · n̂ = D</code>.</p>
+    <p>The intersection <code>P_hit</code> is found by solving <code>t</code> for the ray <code>P(t) = t · k_out</code> and the plane <code><b>P</b> · <b>n</b>̂ = D</code>.</p>
     <ul>
       <li>This gives <code>t = D / (k_out · n̂)</code>.</li>
       <li>A hit is valid only if <code>t > 0</code> (intersection is in front of the sample, pointing toward the detector).</li>
       <li>The (U,V) coordinates on the detector are the projection of <code>P_hit</code>:</li>
     </ul>
-<pre><code>v = P_hit_z   // Vertical coordinate is the Z component
-u = P_hit · û   // Horizontal coordinate
+<pre><code>v = <b>P</b>_hit_z   // Vertical coordinate is the Z component
+u = <b>P</b>_hit · <b>u</b>̂   // Horizontal coordinate
 (x₂d, y₂d) = (u, v) // These are the plotted (mm) coordinates
 </code></pre>
 
@@ -163,16 +165,16 @@ u = P_hit · û   // Horizontal coordinate
     <h3>5) Experimental geometry → scattering vectors</h3>
     <p>From a measured spot at detector coordinates <code>(u_mm, v_mm)</code> relative to the center, we reconstruct the 3D scattering vector.</p>
 <pre><code>// φ is the detector angle, D is distance
-n̂ = (cosφ, sinφ, 0)
-û = (-sinφ, cosφ, 0)
-v̂ = (0, 0, 1)
+<b>n</b>̂ = (cosφ, sinφ, 0)
+<b>u</b>̂ = (-sinφ, cosφ, 0)
+<b>v</b>̂ = (0, 0, 1)
 
 // Reconstruct 3D spot position from (u,v)
-P_center = D · n̂
-P_hit = P_center + (u_mm · û) + (v_mm · v̂)
+<b>P</b>_center = D · <b>n</b>̂
+<b>P</b>_hit = <b>P</b>_center + (u_mm · <b>u</b>̂) + (v_mm · <b>v</b>̂)
 
-k̂_out = normalize( P_hit )
-ĝ_exp = normalize( k̂_out − (1,0,0) )  // used for orientation solving
+<b>k</b>̂_out = normalize( <b>P</b>_hit )
+<b>g</b>̂_exp = normalize( <b>k</b>̂_out − (1,0,0) )  // used for orientation solving
 </code></pre>
 
     <h3>6) Pixel ↔ millimeter conversion</h3>
@@ -226,16 +228,17 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
       <li>Re-do center/scale carefully; a wrong scale ruins geometry.</li>
       <li>Use clear, well-separated peaks (3+ across different quadrants). Try <i>Invert Image</i> if the finder misses peaks.</li>
     </ul>
-    <h3>Spot not centered after “Orient to (h,k,l)”</h3>
+    
+    <h3>Spot not visible after “Orient to (h,k,l)”</h3>
     <ul>
-      <li>The Orient function always aligns the (h,k,l) vector to the <b>−X axis</b>. This is the condition for a 180° back-reflection. The spot will only appear at the center (0,0) if the <b>Detector Angle</b> is also set to 180°.</li>
+      <li>This can happen if the wavelength ($\lambda$) required for that reflection, at that specific detector angle, is outside the <b>'X-ray Source' (λ_min, λ_max) band</b>. The 'Orient' tab will show a status message with the required $\lambda$, allowing you to check if it's in range.</li>
     </ul>
   </section>
 
   <section class="card">
     <h2>Conventions & hints</h2>
     <ul>
-      <li>Beam: +X. The detector plane is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
+      <li><b>Coordinate System:</b> The incident beam is along the <b>+X</b> axis. The lab's vertical direction is <b>+Z</b> (mapping to the detector's +V coordinate). The detector plane's position is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
       <li>On the image, +Y is <em>down</em>. In the detector's (U, V) coordinate system, +V is <em>up</em> (handled by the scale sign).</li>
       <li>Dragging the canvas rotates Y/Z goniometer axes; use sliders for precise values.</li>
       <li>Use a realistic λ band (e.g., 0.2–3.0 Å) and a correct D to reduce false solutions.</li>

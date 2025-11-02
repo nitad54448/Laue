@@ -547,7 +547,7 @@
                     <div class="info-section">
                         <span class="form-label">Orient to (h,k,l)</span>
                         <p class="text-sm text-gray-600 mb-3" style="color: var(--text-dark);">
-                            Align a specific (h,k,l) vector with the beam axis (to the -X direction).
+                            Align a specific (h,k,l) reflection to the center of the detector.
                         </p>
                         <div class="form-input-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                             <div>
@@ -582,7 +582,7 @@
                                 <input type="text" id="orient_Z_out" class="form-input-output" readonly>
                             </div>
                         </div>
-                        <div id="orientStatus" class="text-sm mt-3 h-10" style="color: var(--text-medium);"></div>
+<div id="orientStatus" class="text-sm mt-3" style="color: var(--text-medium);"></div>
                     </div>
                     
                     <div class="info-section">
@@ -590,11 +590,7 @@
                          <p class="text-sm text-gray-600" style="color: var(--text-dark);">
                             This calculates the goniometer angles (in the 'Set' tab) required to rotate from the *current base orientation* to the new target.
                             <br><br>
-                            • The (h,k,l) vector is aligned to the **-X axis** (anti-parallel to the incident beam).
-                            <br><br>
-                            • This is the 180° back-reflection condition. The spot will appear at the center *only if* the detector is also at 180°.
-                            <br><br>
-                            **Important:** The aligned (h,k,l) spot will only be visible if its required wavelength is within the "X-Ray Source" range specified in the 'Set' tab.
+                            • The (h,k,l) vector is aligned to the **-X axis**. The aligned (h,k,l) spot will only be visible if its required wavelength is within the "X-Ray Source" range specified in the 'Set' tab.
                          </p>
                     </div>
                 </div>
@@ -1084,7 +1080,7 @@
             let beta = getValidatedNumericInput('beta', 10, 170, 90.0);
             let gamma = getValidatedNumericInput('gamma', 10, 170, 90.0);
 
-            console.log("Reading Lattice Params:", { a, b, c, alpha, beta, gamma, system });
+  //          console.log("Reading Lattice Params:", { a, b, c, alpha, beta, gamma, system });
        
 
 
@@ -1717,10 +1713,25 @@
             const vFrom = g_unrotated.clone().normalize();
 
             // 4. Define target vector
-            // We want to align the (h,k,l) vector ANTI-PARALLEL to the
-            // incident beam (which is +X). So, the target is -X.
-            // This is the condition for 180-degree back-scattering.
-            const vTo = new THREE.Vector3(-1, 0, 0); 
+// Read the current detector angle
+let angle_deg = getValidatedNumericInput('detectorAngle', 0, 180, 180);
+const phi_D_rad = THREE.MathUtils.degToRad(angle_deg);
+
+// Calculate the correct scattering vector direction
+const vTo = new THREE.Vector3(
+    Math.cos(phi_D_rad) - 1, 
+    Math.sin(phi_D_rad), 
+    0
+);
+
+// Handle the 0-degree (transmission) case
+if (vTo.lengthSq() < 1e-9) {
+    orientStatusDiv.textContent = 'Error: Cannot align to 0° (direct beam).';
+    return;
+}
+vTo.normalize();
+
+
 
             // 5. Calculate the TOTAL target rotation (R_target)
             const targetQuaternion = new THREE.Quaternion();
@@ -1779,9 +1790,7 @@
                 if (lambda_min < 0.1) lambda_min = 0.1;
             }
 
-            const angle_deg = getValidatedNumericInput('detectorAngle', 0, 180, 180);
-            
-
+        
             let statusMsg = `Goniometer set for ${angle_deg.toFixed(1)}° detector. `;
 
            // Check if the spot is visible
@@ -1860,7 +1869,7 @@
                 
                 addParamRow('URL:', window.location.href);
                 addParamRow('Version:', '3.0 (General Detector), November 1, 2025');
-                yPos += 5;
+   //             yPos += 5;
               
                 addParamRow('Generated:', timestamp);
                 const fileName = document.getElementById('imageLoader').files[0]?.name || 'N/A (simulation)';
