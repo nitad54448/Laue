@@ -454,7 +454,7 @@
                         <span class="form-label">Detector Geometry</span>
                         <div class="form-input-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
                             
-                            <!-- NEW Detector Angle Slider -->
+                            <!-- Detector Angle Slider -->
                             <div class="span-2">
                                 <label for="detectorAngle" class="form-label text-sm">Angle (°) <span class="font-normal text-gray-400">(0=Trans, 180=Back)</span></label>
                                 <div class="grid grid-cols-[1fr,65px] gap-2 items-center">
@@ -1162,7 +1162,7 @@
         }
 
 
-        // This function implements the general detector plane logic
+        //  general detector plane logic
         function getSimulatedSpots(rotX_deg, rotY_deg, rotZ_deg, detectorParams, hklRangeVal) {
             let spots = [];
             let { // Use 'let' to allow modification
@@ -1171,7 +1171,7 @@
                 lambda_min,
                 lambda_max,
                 dist,
-                angle_deg // <-- We now get angle_deg
+                angle_deg 
             } = detectorParams;
         
               // --- 1. Set up Detector Plane ---
@@ -1243,11 +1243,9 @@
                         continue; // Beam is parallel or points away from the detector
                     }
 
-                    // We have a valid hit. Calculate intersection.
                     const t = dist / kf_dot_normal;
                     intersectionPoint.copy(k_f_vec).multiplyScalar(t);
 
-                    // We need to find the (u,v) coordinates
                     // v-coordinate is the Z component
                     const v = intersectionPoint.z;
                     const u = intersectionPoint.dot(u_axis);
@@ -1274,13 +1272,13 @@
             const rotZ_deg = parseFloat(document.getElementById('rotZ').value) || 0;
 
 
-            // We must check for NaN, because parseFloat(0) is 0, which is falsy and would trigger the || 180.
+            // check for NaN
             let detectorAngle = parseFloat(document.getElementById('detectorAngle').value);
             if (isNaN(detectorAngle)) {
                 detectorAngle = 180;
             }
 
-            // 2. PASS the angle as an argument here
+            // 2. PASS the angle 
             detectorSpots = generateSpotsForOrientation(rotX_deg, rotY_deg, rotZ_deg, detectorAngle); 
             
             redrawDetector();
@@ -1308,7 +1306,7 @@
                 .addScaledVector(u_axis, u_mm)
                 .addScaledVector(v_axis, v_mm);
 
-            // k_in is ALWAYS from +X
+            // k_in is ALWAYS from +X, Jacques Berthon's definition
             const k_in = new THREE.Vector3(1, 0, 0); 
             
             // k_out is the normalized vector from origin to the detector spot
@@ -1378,7 +1376,6 @@
 
             const searchBtn = document.getElementById('searchOrientBtn');
 
-            
             // 1. Get experimental parameters
             const D = getValidatedNumericInput('detectorDistance', 1, 1000, 36);
           
@@ -1498,7 +1495,7 @@
                 bravaisType: bravaisType,
                 lambda_min: lambda_min_val,
                 lambda_max: lambda_max_val,
-                dist: D, // D is already validated
+                dist: D, 
                 angle_deg: angle_deg // angle_deg is already validated
             };
 
@@ -1570,7 +1567,7 @@
                 // 2. Store this as the new "Base Orientation"
                 baseOrientationMatrix.makeRotationFromEuler(euler);
 
-                // 3. DO NOT change the sliders. The goniometer sliders stay at (0,0,0).
+                // 3. DO NOT change the sliders. 
                 
                 // 4. Update the visualization. This will re-run the simulation 
                 //    using the new baseOrientationMatrix and the current (0,0,0) slider values.
@@ -1652,7 +1649,7 @@
             const sol = orientationSolutions[index];
             if (!sol) return;
 
-            // --- NEW: Set the base orientation to this solution ---
+            // Set the base orientation to this solution ---
             const euler = new THREE.Euler(
                 THREE.MathUtils.degToRad(sol.euler.rotX),
                 THREE.MathUtils.degToRad(sol.euler.rotY),
@@ -1661,9 +1658,7 @@
             );
             baseOrientationMatrix.makeRotationFromEuler(euler);
             
-            // --- IMPORTANT: Reset goniometer sliders to 0 ---
-            // This assumes the user wants to see the *raw* solution
-            // without any goniometer rotation applied.
+            // Reset goniometer sliders to 0 ---
             document.getElementById('rotX').value = 0;
             document.getElementById('rotY').value = 0;
             document.getElementById('rotZ').value = 0;
@@ -1674,7 +1669,7 @@
             // Update the visualization with the new base + 0 goniometer
             updateVisualization();
             
-            // Highlight in solutions list
+            // Highlight in solutions list... again ?
             document.querySelectorAll('.solution-item').forEach((item, i) => {
                 item.classList.toggle('selected', i === index);
             });
@@ -1683,8 +1678,8 @@
             fomInfoDiv.style.display = 'block';
         }
   
-        // This function now calculates the required goniometer angles
-        // relative to the current base orientation.
+        //  calculates the required goniometer angles
+        // relative to the current base orientation... the orientation required (negative to the position)
         function orientToHKL() {
             orientStatusDiv.textContent = 'Calculating...';
 
@@ -1713,11 +1708,8 @@
             }
             const vFrom = g_unrotated.clone().normalize();
 
-            // 4. Define target vector
-
-
-
-// 4. Define target vector (MODIFIED: Target is now the detector normal)
+ 
+// 4. Define target vector
 // Read the current detector angle
 let angle_deg = getValidatedNumericInput('detectorAngle', 0, 180, 180);
 const phi_D_rad = THREE.MathUtils.degToRad(angle_deg);
@@ -1726,11 +1718,6 @@ const sinPhi = Math.sin(phi_D_rad);
 
 // The target vector vTo is now the detector normal itself
 const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
-
-// This vector always has length 1 (it's on the unit circle),
-// so we no longer need to check for a zero-length vector.
-// The 0-degree case (vTo = <1,0,0>) is now perfectly valid.
-
 
 
             // 5. Calculate the TOTAL target rotation (R_target)
@@ -1744,8 +1731,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             }
             const targetMatrix = new THREE.Matrix4().makeRotationFromQuaternion(targetQuaternion);
 
-            // 6. 
-            // We want to find R_gonio such that: R_target = R_gonio * U_base
+            // 6. find R_gonio such that: R_target = R_gonio * U_base
             // Therefore: R_gonio = R_target * U_base_inverse
             
             const baseInverseMatrix = new THREE.Matrix4().copy(baseOrientationMatrix).invert();
@@ -1775,26 +1761,11 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             updateVisualization();
 
 
-
-
-
-
-
-
             // 10. Update status message (MODIFIED: Physics check removed)
             let statusMsg = `Goniometer set to align (${h},${k},${l}) normal parallel to the ${angle_deg.toFixed(1)}° detector normal.`;
             
-            // We are calculating a geometric alignment, not a diffraction
-            // condition, so the wavelength check is no longer relevant.
+            //  the wavelength check is not relevant.
             orientStatusDiv.textContent = statusMsg;
-
-
-
-
-
-
-
-
 
         }
 
@@ -1911,7 +1882,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 addParamRow('Goniometer Y (°):', document.getElementById('rotY').value);
                 addParamRow('Goniometer Z (°):', document.getElementById('rotZ').value);
                 
-                // --- NEW: Add Orientation Target Section ---
+                // Add Orientation Target Section
                 const orientX_out = document.getElementById('orient_X_out').value;
                 const orientY_out = document.getElementById('orient_Y_out').value;
                 const orientZ_out = document.getElementById('orient_Z_out').value;
@@ -1927,7 +1898,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                     addParamRow('Required Goniometer Y (°):', orientY_out);
                     addParamRow('Required Goniometer Z (°):', orientZ_out);
                 }
-                // --- END NEW SECTION ---
                 
                 const scale_valid = pixels_per_mm_x > 0 && pixels_per_mm_y > 0;
                 if (imageCenter) {
@@ -2000,7 +1970,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                         lambda_min: parseFloat(document.getElementById('lambda_min').value),
                         lambda_max: parseFloat(document.getElementById('lambda_max').value),
                         dist: D,
-                        angle_deg: angle_deg // <-- NEW
+                        angle_deg: angle_deg 
                     };
                     
                     const expSpots_mm = experimentalSpots.map((p, idx) => ({
@@ -2412,8 +2382,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             zoomCtx.stroke();
         }
 
-
-
         // --- EVENT HANDLERS & SETUP ---
  
         function handleImageUpload(event) {
@@ -2451,7 +2419,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                     onWindowResize(); // This will also call redrawDetector
                     setUIMode('idle');
                     
-                    // Call updateVisualization AFTER resetting sliders
                     updateVisualization(); 
                 };
                 experimentalImage.src = e.target.result;
@@ -2540,7 +2507,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 // 1. Update zoom window position
                 zoomCanvas.style.left = `${zoomLeft}px`;
                 zoomCanvas.style.top = `${zoomTop}px`;
-                // --- END NEW ---
 
                 // 2. Update zoom window content
                 updateZoomCanvas(raw_x, raw_y);
@@ -2758,7 +2724,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             // Link sliders and number inputs
             initSliderLink('lambda_min_slider', 'lambda_min', updateVisualization);
             initSliderLink('lambda_max_slider', 'lambda_max', updateVisualization);
-            initSliderLink('detectorAngle_slider', 'detectorAngle', updateVisualization); // <-- NEW
+            initSliderLink('detectorAngle_slider', 'detectorAngle', updateVisualization);
             initSliderLink('detectorDistance_slider', 'detectorDistance', updateVisualization);
             initSliderLink('rotX_slider', 'rotX', updateVisualization);
             initSliderLink('rotY_slider', 'rotY', updateVisualization);
