@@ -4,7 +4,7 @@
     <title>Laue Diagram Simulator & Indexer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="./dist/output.css" rel="stylesheet">
 
     <style>
         :root {
@@ -673,7 +673,8 @@
             'Orthorhombic (I)': { system: 'orthorhombic', type: 'I' },
             'Orthorhombic (F)': { system: 'orthorhombic', type: 'F' },
             'Hexagonal (P)': { system: 'hexagonal', type: 'P' },
-            'Trigonal (R)': { system: 'trigonal', type: 'R' },
+            'Trigonal (P, hex axes)': { system: 'trigonal_hex', type: 'P' },
+            'Trigonal (R, rhomb. axes)': { system: 'rhombohedral', type: 'R' },
             'Monoclinic (P)': { system: 'monoclinic', type: 'P' },
             'Monoclinic (C)': { system: 'monoclinic', type: 'C' },
             'Triclinic (P)': { system: 'triclinic', type: 'P' },
@@ -782,7 +783,13 @@
                     inputs.beta.value = 90;
                     inputs.gamma.value = 120;
                     break;
-                case 'trigonal':
+                case 'trigonal_hex':
+                    inputs.b.value = inputs.a.value;
+                    inputs.alpha.value = 90;
+                    inputs.beta.value = 90;
+                    inputs.gamma.value = 120;
+                    break;
+                case 'rhombohedral':
                     inputs.b.value = inputs.a.value;
                     inputs.c.value = inputs.a.value;
                     inputs.beta.value = inputs.alpha.value;
@@ -800,7 +807,8 @@
                 'monoclinic': ['a', 'b', 'c', 'beta'],
                 'orthorhombic': ['a', 'b', 'c'],
                 'tetragonal': ['a', 'c'],
-                'trigonal': ['a', 'alpha'],
+                'trigonal_hex': ['a', 'c'],
+                'rhombohedral': ['a', 'alpha'],
                 'hexagonal': ['a', 'c'],
                 'cubic': ['a']
             };
@@ -1089,7 +1097,8 @@
                 case 'tetragonal': b = a; alpha = 90; beta = 90; gamma = 90; break;
                 case 'orthorhombic': alpha = 90; beta = 90; gamma = 90; break;
                 case 'hexagonal': b = a; alpha = 90; beta = 90; gamma = 120; break;
-                case 'trigonal': b = a; c = a; beta = alpha; gamma = alpha; break;
+                case 'trigonal_hex': b = a; alpha = 90; beta = 90; gamma = 120; break;
+                case 'rhombohedral': b = a; c = a; beta = alpha; gamma = alpha; break;
                 case 'monoclinic': alpha = 90; gamma = 90; break;
             }
             return { a, b, c, alpha, beta, gamma };
@@ -1120,6 +1129,8 @@
                 case 'P': return true;
                 case 'I': return (h + k + l) % 2 === 0;
                 case 'F': return ((h + k) % 2 === 0) && ((h + l) % 2 === 0) && ((k + l) % 2 === 0);
+                case 'A': return (k + l) % 2 === 0;
+                case 'B': return (h + l) % 2 === 0;
                 case 'C': return (h + k) % 2 === 0;
                 case 'R': return (-h + k + l) % 3 === 0;
                 default: return true;
@@ -1318,18 +1329,66 @@
         }
 
 
+        // --- Helpers for proper Kabsch via 3x3 symmetric eigendecomposition ---
+        // Jacobi eigendecomposition for a symmetric 3x3 matrix.
+        // Input: 3x3 array A (will not be modified). Returns { values: [λ1,λ2,λ3], vectors: [[v1],[v2],[v3]] columns }
+        function jacobiEigen3(Ain) {
+            const A = [
+                [Ain[0][0], Ain[0][1], Ain[0][2]],
+                [Ain[1][0], Ain[1][1], Ain[1][2]],
+                [Ain[2][0], Ain[2][1], Ain[2][2]]
+            ];
+            const V = [[1,0,0],[0,1,0],[0,0,1]];
+            for (let sweep = 0; sweep < 50; sweep++) {
+                const off = Math.abs(A[0][1]) + Math.abs(A[0][2]) + Math.abs(A[1][2]);
+                if (off < 1e-14) break;
+                for (let p = 0; p < 2; p++) {
+                    for (let q = p + 1; q < 3; q++) {
+                        const apq = A[p][q];
+                        if (Math.abs(apq) < 1e-18) continue;
+                        const app = A[p][p], aqq = A[q][q];
+                        const theta = (aqq - app) / (2 * apq);
+                        let t;
+                        if (Math.abs(theta) > 1e15) t = 1 / (2 * theta);
+                        else t = (theta >= 0 ? 1 : -1) / (Math.abs(theta) + Math.sqrt(theta*theta + 1));
+                        const c = 1 / Math.sqrt(t*t + 1);
+                        const s = t * c;
+                        A[p][p] = app - t * apq;
+                        A[q][q] = aqq + t * apq;
+                        A[p][q] = 0; A[q][p] = 0;
+                        for (let i = 0; i < 3; i++) {
+                            if (i !== p && i !== q) {
+                                const aip = A[i][p], aiq = A[i][q];
+                                A[i][p] = c * aip - s * aiq; A[p][i] = A[i][p];
+                                A[i][q] = s * aip + c * aiq; A[q][i] = A[i][q];
+                            }
+                            const vip = V[i][p], viq = V[i][q];
+                            V[i][p] = c * vip - s * viq;
+                            V[i][q] = s * vip + c * viq;
+                        }
+                    }
+                }
+            }
+            return { values: [A[0][0], A[1][1], A[2][2]], vectors: V };
+        }
+
         function kabschRotation(pointsA, pointsB) {
             if (pointsA.length !== pointsB.length || pointsA.length < 2) return null;
             
             if (pointsA.length === 2) {
                 const a1 = pointsA[0].clone().normalize();
                 const a2_raw = pointsA[1].clone();
-                const a2_perp = new THREE.Vector3().subVectors(a2_raw, a1.clone().multiplyScalar(a1.dot(a2_raw))).normalize();
+                // Guard against collinear / antiparallel vectors that would NaN the Gram-Schmidt
+                const a2_perp_raw = new THREE.Vector3().subVectors(a2_raw, a1.clone().multiplyScalar(a1.dot(a2_raw)));
+                if (a2_perp_raw.lengthSq() < 1e-10) return null;
+                const a2_perp = a2_perp_raw.normalize();
                 const a3 = new THREE.Vector3().crossVectors(a1, a2_perp).normalize();
                 
                 const b1 = pointsB[0].clone().normalize();
                 const b2_raw = pointsB[1].clone();
-                const b2_perp = new THREE.Vector3().subVectors(b2_raw, b1.clone().multiplyScalar(b1.dot(b2_raw))).normalize();
+                const b2_perp_raw = new THREE.Vector3().subVectors(b2_raw, b1.clone().multiplyScalar(b1.dot(b2_raw)));
+                if (b2_perp_raw.lengthSq() < 1e-10) return null;
+                const b2_perp = b2_perp_raw.normalize();
                 const b3 = new THREE.Vector3().crossVectors(b1, b2_perp).normalize();
                 
                 const matA = new THREE.Matrix4().makeBasis(a1, a2_perp, a3);
@@ -1339,6 +1398,7 @@
                 return new THREE.Matrix4().multiplyMatrices(matB, matA_inv);
             }
             
+            // ---- General Kabsch (n >= 3) via SVD of H computed from eigendecomposition of H^T H ----
             const centroidA = new THREE.Vector3();
             const centroidB = new THREE.Vector3();
             for (let i = 0; i < pointsA.length; i++) {
@@ -1348,25 +1408,80 @@
             centroidA.divideScalar(pointsA.length);
             centroidB.divideScalar(pointsA.length);
             
-            const H = new THREE.Matrix3();
-            H.set(0, 0, 0, 0, 0, 0, 0, 0, 0);
-            
+            // Build covariance H = sum (a_i - <a>) (b_i - <b>)^T  (3x3 dense array)
+            const H = [[0,0,0],[0,0,0],[0,0,0]];
             for (let i = 0; i < pointsA.length; i++) {
-                const a = new THREE.Vector3().subVectors(pointsA[i], centroidA);
-                const b = new THREE.Vector3().subVectors(pointsB[i], centroidB);
-                H.elements[0] += a.x * b.x; H.elements[1] += a.x * b.y; H.elements[2] += a.x * b.z;
-                H.elements[3] += a.y * b.x; H.elements[4] += a.y * b.y; H.elements[5] += a.y * b.z;
-                H.elements[6] += a.z * b.x; H.elements[7] += a.z * b.y; H.elements[8] += a.z * b.z;
+                const ax = pointsA[i].x - centroidA.x, ay = pointsA[i].y - centroidA.y, az = pointsA[i].z - centroidA.z;
+                const bx = pointsB[i].x - centroidB.x, by = pointsB[i].y - centroidB.y, bz = pointsB[i].z - centroidB.z;
+                H[0][0] += ax*bx; H[0][1] += ax*by; H[0][2] += ax*bz;
+                H[1][0] += ay*bx; H[1][1] += ay*by; H[1][2] += ay*bz;
+                H[2][0] += az*bx; H[2][1] += az*by; H[2][2] += az*bz;
             }
             
-            const h = H.elements;
-            const col1 = new THREE.Vector3(h[0], h[3], h[6]).normalize();
-            const col2_raw = new THREE.Vector3(h[1], h[4], h[7]);
-            const col2 = new THREE.Vector3().subVectors(col2_raw, col1.clone().multiplyScalar(col1.dot(col2_raw))).normalize();
-            const col3 = new THREE.Vector3().crossVectors(col1, col2).normalize();
+            // SVD: H = U S V^T. Compute V from eigendecomp of H^T H, then U_i = (H v_i) / s_i.
+            const HtH = [[0,0,0],[0,0,0],[0,0,0]];
+            for (let i = 0; i < 3; i++)
+                for (let j = 0; j < 3; j++)
+                    for (let k = 0; k < 3; k++)
+                        HtH[i][j] += H[k][i] * H[k][j];
+            
+            const eig = jacobiEigen3(HtH);
+            // Sort eigenpairs descending
+            const order = [0, 1, 2].sort((i, j) => eig.values[j] - eig.values[i]);
+            const sigma = order.map(idx => Math.sqrt(Math.max(eig.values[idx], 0)));
+            const V = order.map(idx => [eig.vectors[0][idx], eig.vectors[1][idx], eig.vectors[2][idx]]);  // V columns
+            
+            // Compute U columns. If a singular value is ~0, use a fallback orthogonal complement.
+            const U = [[0,0,0],[0,0,0],[0,0,0]];  // U as rows-of-columns: U[col][row]
+            for (let c = 0; c < 3; c++) {
+                if (sigma[c] > 1e-10) {
+                    const Hv = [
+                        H[0][0]*V[c][0] + H[0][1]*V[c][1] + H[0][2]*V[c][2],
+                        H[1][0]*V[c][0] + H[1][1]*V[c][1] + H[1][2]*V[c][2],
+                        H[2][0]*V[c][0] + H[2][1]*V[c][1] + H[2][2]*V[c][2]
+                    ];
+                    U[c] = [Hv[0]/sigma[c], Hv[1]/sigma[c], Hv[2]/sigma[c]];
+                } else if (c === 2) {
+                    // Last column: take cross product of first two to ensure orthonormality
+                    U[c] = [
+                        U[0][1]*U[1][2] - U[0][2]*U[1][1],
+                        U[0][2]*U[1][0] - U[0][0]*U[1][2],
+                        U[0][0]*U[1][1] - U[0][1]*U[1][0]
+                    ];
+                } else {
+                    // Degenerate: not enough rank for a unique fit. Bail out.
+                    return null;
+                }
+            }
+            
+            // R = V * diag(1, 1, det(V * U^T)) * U^T  to avoid reflection
+            // Compute M = V * U^T  as 3x3, then det(M).
+            // V columns are V[c]; U columns are U[c]. (V U^T)_ij = sum_c V_ic * U_jc.
+            const VUt = [[0,0,0],[0,0,0],[0,0,0]];
+            for (let i = 0; i < 3; i++)
+                for (let j = 0; j < 3; j++)
+                    for (let c = 0; c < 3; c++)
+                        VUt[i][j] += V[c][i] * U[c][j];
+            const det = VUt[0][0]*(VUt[1][1]*VUt[2][2] - VUt[1][2]*VUt[2][1])
+                      - VUt[0][1]*(VUt[1][0]*VUt[2][2] - VUt[1][2]*VUt[2][0])
+                      + VUt[0][2]*(VUt[1][0]*VUt[2][1] - VUt[1][1]*VUt[2][0]);
+            const sign = det < 0 ? -1 : 1;
+            
+            // R_ij = sum_c V_ic * D_cc * U_jc, where D = diag(1, 1, sign)
+            const Rm = [[0,0,0],[0,0,0],[0,0,0]];
+            for (let i = 0; i < 3; i++)
+                for (let j = 0; j < 3; j++) {
+                    Rm[i][j] = V[0][i]*U[0][j] + V[1][i]*U[1][j] + sign * V[2][i]*U[2][j];
+                }
             
             const R = new THREE.Matrix4();
-            R.makeBasis(col1, col2, col3);
+            // Three.js Matrix4.set takes row-major arguments
+            R.set(
+                Rm[0][0], Rm[0][1], Rm[0][2], 0,
+                Rm[1][0], Rm[1][1], Rm[1][2], 0,
+                Rm[2][0], Rm[2][1], Rm[2][2], 0,
+                0, 0, 0, 1
+            );
             return R;
         }
 
@@ -1436,6 +1551,7 @@
             await new Promise(resolve => setTimeout(resolve, 10));
             
             const angleTolerance = THREE.MathUtils.degToRad(5.0);
+            const minPairAngle = THREE.MathUtils.degToRad(5.0); // skip near-collinear pairs (degenerate Kabsch)
             const candidateOrientations = [];
             for (let i = 0; i < expGVectors.length; i++) {
                 for (let j = i + 1; j < expGVectors.length; j++) {
@@ -1443,6 +1559,8 @@
                     const g_exp_j = expGVectors[j];
                     const dot_exp = Math.max(-1, Math.min(1, g_exp_i.dot(g_exp_j)));
                     const angle_exp = Math.acos(dot_exp);
+                    // Skip if the two experimental vectors are nearly parallel or antiparallel
+                    if (angle_exp < minPairAngle || angle_exp > Math.PI - minPairAngle) continue;
                     
                     for (let m = 0; m < hklLibrary.length; m++) {
                         for (let n = m + 1; n < hklLibrary.length; n++) {
@@ -1450,6 +1568,8 @@
                             const hkl_n = hklLibrary[n];
                             const dot_sim = Math.max(-1, Math.min(1, hkl_m.g.dot(hkl_n.g)));
                             const angle_sim = Math.acos(dot_sim);
+                            // Skip near-collinear simulated pairs as well
+                            if (angle_sim < minPairAngle || angle_sim > Math.PI - minPairAngle) continue;
                             
                             if (Math.abs(angle_exp - angle_sim) < angleTolerance) {
                                 candidateOrientations.push({
@@ -1508,9 +1628,11 @@
                 const rotMatrix = kabschRotation(simVecs, expVecs);
                 if (!rotMatrix) continue;
                 
+                // Apply the rotation matrix DIRECTLY (no Euler round-trip — avoids gimbal lock).
+                baseOrientationMatrix.copy(rotMatrix);
+                // Euler is computed only for display.
                 const euler = new THREE.Euler().setFromRotationMatrix(rotMatrix, 'XYZ');
                 
-                baseOrientationMatrix.makeRotationFromEuler(euler);
                 const simSpots = getSimulatedSpots(0, 0, 0, detectorParams, HKL_RANGE);
                 
                 // Score this orientation
@@ -1533,7 +1655,9 @@
                 if (matches >= minRequiredMatches) {
                     const rmsError = Math.sqrt(sumSquaredError / matches);
                     const coverage = matches / expSpots_mm.length;
-                    const coveragePenalty = Math.pow(2.0 - coverage, 2);
+                    // Stronger penalty: a 50% solution gets 4x worse than a 100% solution.
+                    // Use 1/coverage^2 so the gradient with coverage dominates small RMS differences.
+                    const coveragePenalty = 1.0 / (coverage * coverage);
                     const score = rmsError * coveragePenalty;
                     
                     solutions.push({
@@ -1542,6 +1666,8 @@
                             rotY: THREE.MathUtils.radToDeg(euler.y), 
                             rotZ: THREE.MathUtils.radToDeg(euler.z) 
                         },
+                        // Store the matrix elements — this is the source of truth for re-application.
+                        matrixElements: rotMatrix.elements.slice(),
                         score: score, matches: matches,
                         rmsError: rmsError, coverage: coverage
                     });
@@ -1557,20 +1683,12 @@
             
             if (orientationSolutions.length > 0) {
                 const best = orientationSolutions[0];
-                // 1. Get the best solution's Euler angles
-                const euler = new THREE.Euler(
-                    THREE.MathUtils.degToRad(best.euler.rotX),
-                    THREE.MathUtils.degToRad(best.euler.rotY),
-                    THREE.MathUtils.degToRad(best.euler.rotZ),
-                    'XYZ'
-                );
-                // 2. Store this as the new "Base Orientation"
-                baseOrientationMatrix.makeRotationFromEuler(euler);
+                // Apply the stored rotation matrix directly (no Euler round-trip).
+                baseOrientationMatrix.fromArray(best.matrixElements);
 
-                // 3. DO NOT change the sliders. 
-                
-                // 4. Update the visualization. This will re-run the simulation 
-                //    using the new baseOrientationMatrix and the current (0,0,0) slider values.
+                // DO NOT change the sliders.
+                // Update the visualization. This will re-run the simulation 
+                // using the new baseOrientationMatrix and the current (0,0,0) slider values.
                 updateVisualization();
                 
                 // Highlight the first solution in the Solutions tab
@@ -1649,14 +1767,19 @@
             const sol = orientationSolutions[index];
             if (!sol) return;
 
-            // Set the base orientation to this solution ---
-            const euler = new THREE.Euler(
-                THREE.MathUtils.degToRad(sol.euler.rotX),
-                THREE.MathUtils.degToRad(sol.euler.rotY),
-                THREE.MathUtils.degToRad(sol.euler.rotZ),
-                'XYZ'
-            );
-            baseOrientationMatrix.makeRotationFromEuler(euler);
+            // Apply the stored rotation matrix directly (no Euler round-trip).
+            if (sol.matrixElements) {
+                baseOrientationMatrix.fromArray(sol.matrixElements);
+            } else {
+                // Fallback for any legacy solution objects
+                const euler = new THREE.Euler(
+                    THREE.MathUtils.degToRad(sol.euler.rotX),
+                    THREE.MathUtils.degToRad(sol.euler.rotY),
+                    THREE.MathUtils.degToRad(sol.euler.rotZ),
+                    'XYZ'
+                );
+                baseOrientationMatrix.makeRotationFromEuler(euler);
+            }
             
             // Reset goniometer sliders to 0 ---
             document.getElementById('rotX').value = 0;
@@ -2781,7 +2904,3 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
     </script>
 </body>
 </html>
-
-
-
-
