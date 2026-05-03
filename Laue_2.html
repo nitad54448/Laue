@@ -178,6 +178,19 @@
         #helpButton:hover {
             background-color: var(--primary-accent-hover);
         }
+
+        #creditNote {
+            position: fixed;
+            bottom: 8px;
+            right: 12px;
+            font-size: 0.7rem;
+            color: var(--text-dark);
+            opacity: 0.7;
+            pointer-events: none;
+            z-index: 1000;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.02em;
+        }
   
 
         /* Form Elements (Re-styled to match combs) */
@@ -2902,5 +2915,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
         
         window.addEventListener('load', init);
     </script>
+    <div id="creditNote">NitaD, Univ. Paris-Saclay &middot; 2 Nov 2025</div>
 </body>
 </html>
