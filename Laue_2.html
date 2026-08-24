@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Laue Diagram Simulator & Indexer</title>
     <meta charset="utf-8">
@@ -267,7 +267,7 @@
             cursor: pointer;
             border: 2px solid var(--text-light); 
             box-sizing: border-box;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.25); /
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
         }
         .form-slider:disabled {
             background: var(--light-bg); 
@@ -511,7 +511,7 @@
                 <div id="analysisTabContent" class="tab-content">
                     <div class="info-section">
                         <label for="imageLoader" class="form-label">Load Image</label>
-                        <input type="file" id="imageLoader" accept="image/" class="form-input">
+                        <input type="file" id="imageLoader" accept="image/*" class="form-input">
                         
                         <div class="flex items-center justify-between mt-4">
                             <div class="flex items-center">
@@ -637,14 +637,13 @@
         
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
        
         let reciprocalMatrix = new THREE.Matrix3();
         let baseOrientationMatrix = new THREE.Matrix4(); // Stores the result of the search (the "unknown" orientation)
         
-        let hklInfoDiv, statusInfoDiv, peakListEl, fomInfoDiv, solutionsListDiv, orientStatusDiv;
+        let statusInfoDiv, peakListEl, fomInfoDiv, solutionsListDiv, orientStatusDiv;
         let detectorCanvas, detectorCtx, detectorContainer, customCursor;
         let detectorSpots = [];
         let isPanning = false, isDragging = false;
@@ -671,6 +670,7 @@
         let isSettingCenter = false, isAddingPeak = false;
         let isDraggingScalePoint = false;
         let selectedPeakIndex = null, isDraggingPeak = false;
+        let editingPeakIndex = null;
 
         const HKL_RANGE = 12;
         const PEAK_COUNT = 12; // Find top 12 peaks
@@ -961,6 +961,16 @@
                 };
                 
                 li.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('focus', () => {
+                        editingPeakIndex = index;
+                        redrawDetector();
+                    });
+                    input.addEventListener('blur', () => {
+                        if (editingPeakIndex === index) {
+                            editingPeakIndex = null;
+                            redrawDetector();
+                        }
+                    });
                     input.addEventListener('change', (e) => {
                         const new_u_mm = parseFloat(li.querySelector('input[data-axis="x"]').value); // U
                         const new_v_mm = parseFloat(li.querySelector('input[data-axis="y"]').value); // V
@@ -1049,16 +1059,17 @@
                 const quadrants = { q1: [], q2: [], q3: [], q4: [] };
                 const centerX = imageCenter.raw_x;
                 const centerY = imageCenter.raw_y;
+                const perQuadrant = Math.max(1, Math.floor(PEAK_COUNT / 4));
 
                 for (const peak of peaks) {
                     if (peak.x > centerX && peak.y < centerY) {
-                        if (quadrants.q1.length < 3) quadrants.q1.push(peak);
+                        if (quadrants.q1.length < perQuadrant) quadrants.q1.push(peak);
                     } else if (peak.x < centerX && peak.y < centerY) {
-                        if (quadrants.q2.length < 3) quadrants.q2.push(peak);
+                        if (quadrants.q2.length < perQuadrant) quadrants.q2.push(peak);
                     } else if (peak.x < centerX && peak.y > centerY) {
-                        if (quadrants.q3.length < 3) quadrants.q3.push(peak);
+                        if (quadrants.q3.length < perQuadrant) quadrants.q3.push(peak);
                     } else if (peak.x > centerX && peak.y > centerY) {
-                        if (quadrants.q4.length < 3) quadrants.q4.push(peak);
+                        if (quadrants.q4.length < perQuadrant) quadrants.q4.push(peak);
                     }
                 }
 
@@ -1100,10 +1111,6 @@
             let alpha = getValidatedNumericInput('alpha', 10, 170, 90.0);
             let beta = getValidatedNumericInput('beta', 10, 170, 90.0);
             let gamma = getValidatedNumericInput('gamma', 10, 170, 90.0);
-
-  //          console.log("Reading Lattice Params:", { a, b, c, alpha, beta, gamma, system });
-       
-
 
             switch (system) {
                 case 'cubic': b = a; c = a; alpha = 90; beta = 90; gamma = 90; break;
@@ -1330,7 +1337,7 @@
                 .addScaledVector(u_axis, u_mm)
                 .addScaledVector(v_axis, v_mm);
 
-            // k_in is ALWAYS from +X, Jacques Berthon's definition
+            // k_in is always taken along +X (incident beam convention)
             const k_in = new THREE.Vector3(1, 0, 0); 
             
             // k_out is the normalized vector from origin to the detector spot
@@ -1498,6 +1505,15 @@
             return R;
         }
 
+        // Angle (in degrees) between two candidate orientations, used to tell whether
+        // two search results represent the same physical orientation or genuinely different ones.
+        function misorientationDeg(elementsA, elementsB) {
+            const mA = new THREE.Matrix4().fromArray(elementsA);
+            const mB = new THREE.Matrix4().fromArray(elementsB);
+            const qA = new THREE.Quaternion().setFromRotationMatrix(mA);
+            const qB = new THREE.Quaternion().setFromRotationMatrix(mB);
+            return THREE.MathUtils.radToDeg(qA.angleTo(qB));
+        }
 
     
         async function findOrientation() {
@@ -1690,7 +1706,20 @@
             baseOrientationMatrix.identity();
             
             solutions.sort((a, b) => a.score - b.score);
-            orientationSolutions = solutions.slice(0, 20);
+
+            // Many (experimental-pair, hkl-pair) candidates converge on the same true
+            // orientation. Keep only the best-scoring representative of each cluster so
+            // the list shows distinct orientations rather than near-duplicates.
+            const MIN_DISTINCT_ANGLE_DEG = 3.0;
+            const diverseSolutions = [];
+            for (const sol of solutions) {
+                const isDuplicate = diverseSolutions.some(existing =>
+                    misorientationDeg(existing.matrixElements, sol.matrixElements) < MIN_DISTINCT_ANGLE_DEG
+                );
+                if (!isDuplicate) diverseSolutions.push(sol);
+                if (diverseSolutions.length >= 20) break;
+            }
+            orientationSolutions = diverseSolutions;
             
             updateSolutionsTab();
             
@@ -1968,8 +1997,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 
                 addParamRow('URL:', window.location.href);
                 addParamRow('Version:', '3.1 (General Detector), November 2, 2025');
-   //             yPos += 5;
-              
                 addParamRow('Generated:', timestamp);
                 const fileName = document.getElementById('imageLoader').files[0]?.name || 'N/A (simulation)';
                 addParamRow('Image File:', fileName);
@@ -2312,12 +2339,14 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             const canvas_x = spot.raw_x * imageTransform.scale + imageTransform.offsetX;
             const canvas_y = spot.raw_y * imageTransform.scale + imageTransform.offsetY;
             const isSelected = (index === selectedPeakIndex);
-            detectorCtx.strokeStyle = isSelected ? '#44aaff' : '#00ff00';
-            detectorCtx.lineWidth = isSelected ? 2.5 : 1.5;
+            const isEditing = (index === editingPeakIndex);
+            const color = isEditing ? '#ff4444' : (isSelected ? '#44aaff' : '#00ff00');
+            detectorCtx.strokeStyle = color;
+            detectorCtx.lineWidth = (isEditing || isSelected) ? 2.5 : 1.5;
             detectorCtx.beginPath();
             detectorCtx.arc(canvas_x, canvas_y, 7, 0, 2 * Math.PI);
             detectorCtx.stroke();
-            detectorCtx.fillStyle = isSelected ? '#44aaff' : '#00ff00';
+            detectorCtx.fillStyle = color;
             detectorCtx.fillText(index + 1, canvas_x, canvas_y);
         });
     }
@@ -2654,8 +2683,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             }
 
             if (isSettingCenter || isAddingPeak) {
-                customCursor.style.left = 'none';
-                customCursor.style.top = 'none';
                 return;
             }
             
