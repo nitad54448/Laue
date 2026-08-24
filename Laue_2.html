@@ -5,27 +5,97 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="./dist/output.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --dark-bg: #111827;
-            --medium-bg: #1f2937;
-            --light-bg: #374151;
-            --border-color: #4b5563;
-            --primary-accent: #1a73e8;
-            --primary-accent-hover: #1765cc;
-            --text-light: #e5e7eb;
-            --text-medium: #d1d5db;
-            --text-dark: #9ca3af;
-            --success-green: #16a34a;
-            --error-red: #dc2626;
+            --dark-bg: #0d1117;
+            --medium-bg: #161b22;
+            --light-bg: #232b38;
+            --card-bg: #151b26;
+            --border-color: #2d3648;
+            --primary-accent: #2f8fef;
+            --primary-accent-hover: #1f7ce0;
+            --phosphor: #35d488;
+            --phosphor-dim: #1f8a58;
+            --amber: #f0a63b;
+            --text-light: #eef1f6;
+            --text-medium: #b9c2d0;
+            --text-dark: #7c8798;
+            --success-green: #35d488;
+            --error-red: #e5484d;
             --led-gray: #6b7280;
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
         }
+        html[data-theme="light"] {
+            --dark-bg: #f4f6f9;
+            --medium-bg: #e7ebf0;
+            --light-bg: #ffffff;
+            --card-bg: #ffffff;
+            --border-color: #d3d9e2;
+            --primary-accent: #1a73e8;
+            --primary-accent-hover: #1560c7;
+            --phosphor: #0f8a54;
+            --phosphor-dim: #0c6d43;
+            --amber: #b5720a;
+            --text-light: #131a24;
+            --text-medium: #3c4658;
+            --text-dark: #6b7688;
+            --success-green: #0f8a54;
+            --error-red: #d13438;
+            --led-gray: #9aa3b0;
+        }
+        html[data-theme="light"] body { background-color: var(--dark-bg); }
 
         /* Simple transition for tab content */
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .hidden { display: none !important; }
+
+        #appHeader {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.9rem 1.1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(180deg, var(--medium-bg), var(--dark-bg));
+        }
+        #appHeaderIcon {
+            width: 34px; height: 34px;
+            flex-shrink: 0;
+            border-radius: 8px;
+            background: radial-gradient(circle at 35% 30%, var(--primary-accent), #14335c 75%);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.4);
+        }
+        #appHeaderIcon svg { width: 19px; height: 19px; }
+        #appHeaderText { line-height: 1.15; overflow: hidden; }
+        #appHeaderTitle {
+            font-weight: 700;
+            font-size: 0.98rem;
+            color: var(--text-light);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        #appHeaderSubtitle {
+            font-size: 0.72rem;
+            color: var(--text-dark);
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Slim dark scrollbars throughout, to match the instrument aesthetic */
+        * { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--light-bg); }
         
 
         /* For Chrome, Safari, Edge, Opera */
@@ -42,7 +112,7 @@
 
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: var(--font-ui);
             display: flex;
             height: 100vh;
             overflow: hidden;
@@ -56,14 +126,25 @@
             background-color: var(--dark-bg);
         }
         #controlsPanel {
-            width: 380px;
+            width: 33%;
+            min-width: 260px;
+            max-width: 65%;
             flex-shrink: 0;
             background-color: var(--dark-bg);
             color: var(--text-medium);
             height: 100%;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--border-color);
+        }
+        #resizeHandle {
+            width: 5px;
+            flex-shrink: 0;
+            cursor: col-resize;
+            background-color: var(--border-color);
+            transition: background-color 0.15s ease;
+        }
+        #resizeHandle:hover, #resizeHandle.dragging {
+            background-color: var(--primary-accent);
         }
         #controlsHeader { 
             padding: 0;
@@ -93,6 +174,7 @@
         }
         #controlsBody { 
             flex-grow: 1; 
+            min-height: 0;
             overflow-y: auto; 
             padding: 1.25rem; 
         }
@@ -101,8 +183,8 @@
             border-top: 1px solid var(--border-color);
             background-color: var(--dark-bg);
         }
-        #statusInfo { color: var(--text-dark); }
-        #fomInfo { color: var(--success-green); }
+        #statusInfo { color: var(--text-dark); font-family: var(--font-mono); font-size: 0.82rem; }
+        #fomInfo { color: var(--phosphor); font-family: var(--font-mono); }
         
         #mainView { 
             flex-grow: 1; 
@@ -156,14 +238,20 @@
         }
 
 
-        #helpButton {
+        #topRightControls {
             position: absolute;
             top: 15px;
             right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 1001;
+        }
+        .icon-btn {
             width: 32px;
             height: 32px;
             background-color: var(--primary-accent);
             color: white;
+            border: none;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -171,11 +259,13 @@
             font-size: 1.2rem;
             font-weight: bold;
             text-decoration: none;
-            z-index: 1001;
+            cursor: pointer;
             transition: background-color 0.2s ease;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            padding: 0;
         }
-        #helpButton:hover {
+        .icon-btn svg { width: 18px; height: 18px; }
+        .icon-btn:hover {
             background-color: var(--primary-accent-hover);
         }
 
@@ -196,10 +286,12 @@
         /* Form Elements (Re-styled to match combs) */
         .form-label {
             display: block;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-dark);
             margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
         .form-input, .form-select {
             width: 100%;
@@ -209,12 +301,15 @@
             background-color: var(--light-bg);
             color: var(--text-light);
             box-shadow: none;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .form-select { font-family: var(--font-ui); }
         .form-input:focus, .form-select:focus {
             outline: none;
             border-color: var(--primary-accent);
-            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.4);
+            box-shadow: 0 0 0 2px rgba(47, 143, 239, 0.35);
         }
     
         .form-input-output {
@@ -223,7 +318,8 @@
             border: 1px solid var(--border-color);
             border-radius: 0.35rem;
             background-color: var(--dark-bg); /* Darker background */
-            color: var(--text-light);
+            color: var(--phosphor);
+            font-family: var(--font-mono);
             cursor: default;
         }
         
@@ -240,8 +336,9 @@
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
-            height: 32px; /* <-- from combs.html */
-            background: var(--medium-bg); /* <-- from combs.html */
+            height: 32px; /* generous click target, but the visible track is a thinner groove below */
+            background: linear-gradient(var(--border-color), var(--border-color)) no-repeat center / 100% 6px;
+            background-color: transparent;
             border-radius: 6px; 
             outline: none;
             padding: 0; 
@@ -270,7 +367,8 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.25);
         }
         .form-slider:disabled {
-            background: var(--light-bg); 
+            background: linear-gradient(var(--medium-bg), var(--medium-bg)) no-repeat center / 100% 6px;
+            background-color: transparent;
         }
         .form-slider:disabled::-webkit-slider-thumb {
             background: var(--border-color); 
@@ -286,11 +384,14 @@
             width: 100%;
             padding: 0.6rem 1rem;
             font-weight: 600;
+            font-size: 0.9rem;
             border-radius: 0.375rem;
             border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        .btn:active:not(:disabled) { transform: translateY(0); }
         .btn-primary { 
             background-color: var(--primary-accent);
             color: white; 
@@ -323,24 +424,42 @@
         .btn-danger:hover { 
             background-color: #b91c1c;
         }
+        .btn-inline-reset {
+            padding: 0.2rem 0.6rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-radius: 0.3rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-inline-reset:hover {
+            color: var(--text-light);
+            border-color: var(--primary-accent);
+        }
 
        
         .info-section {
-            margin-bottom: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
         }
         .info-section:first-child {
-            border-top: none;
-            padding-top: 0;
+            margin-top: 0;
         }
         
     
         #peakList { list-style-type: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
         #peakList li {
             display: grid;
-            grid-template-columns: 25px 1fr 1fr 30px;
-            gap: 5px;
+            grid-template-columns: 18px 1fr 1fr 22px;
+            gap: 4px;
             align-items: center;
             padding: 4px;
             border-radius: 4px;
@@ -355,8 +474,12 @@
             color: var(--text-medium);
         }
         #peakList input { 
-            font-size: 0.9em; 
-            padding: 4px; 
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            font-size: 0.8em; 
+            font-family: var(--font-mono);
+            padding: 4px 2px; 
             text-align: center; 
             border: 1px solid var(--border-color);
             border-radius: 4px; 
@@ -369,8 +492,8 @@
             outline: none;
         }
         #peakList button { 
-            padding: 2px 4px; 
-            font-size: 0.9em; 
+            padding: 2px 0; 
+            font-size: 0.85em; 
             color: var(--error-red);
             background-color: var(--light-bg);
             border: 1px solid var(--border-color);
@@ -409,17 +532,91 @@
 <body>
     <div id="appContainer">
         <div id="controlsPanel">
-            
-            <div id="tabNav">
-                <span class="tab-link active" data-tab="set">Set</span>
-                <span class="tab-link" data-tab="analysis">Analysis</span>
-                <span class="tab-link" data-tab="solutions">Solutions</span>
+
+            <div id="appHeader">
+                <div id="appHeaderIcon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="1.6" fill="#eef1f6"/>
+                        <ellipse cx="12" cy="12" rx="9.5" ry="4" stroke="#eef1f6" stroke-width="1.2" opacity="0.9"/>
+                        <ellipse cx="12" cy="12" rx="9.5" ry="4" stroke="#eef1f6" stroke-width="1.2" opacity="0.9" transform="rotate(60 12 12)"/>
+                        <ellipse cx="12" cy="12" rx="9.5" ry="4" stroke="#eef1f6" stroke-width="1.2" opacity="0.9" transform="rotate(120 12 12)"/>
+                    </svg>
+                </div>
+                <div id="appHeaderText">
+                    <div id="appHeaderTitle">Laue Diffraction Simulator</div>
+                    <div id="appHeaderSubtitle">orientation indexer · X-ray crystallography</div>
+                </div>
+            </div>
+
+<div id="tabNav">
+                <span class="tab-link active" data-tab="system">System</span>
+                <span class="tab-link" data-tab="sample">Sample</span>
+                <span class="tab-link" data-tab="measure">Measure</span>
+                <span class="tab-link" data-tab="search">Search</span>
                 <span class="tab-link" data-tab="orient">Orient</span>
             </div>
 
             <div id="controlsBody">
-                
-                <div id="setTabContent" class="tab-content active">
+
+                <div id="systemTabContent" class="tab-content active">
+                    <div class="info-section">
+                        <span class="form-label">X-Ray Source (Laue)</span>
+                        <div class="form-input-grid" style="grid-template-columns: auto 1fr 65px;">
+                            <label for="lambda_min">λ_min (Å)</label>
+                            <input type="range" id="lambda_min_slider" value="0.2" min="0.1" max="2.0" step="0.1" class="form-slider">
+                            <input type="number" id="lambda_min" value="0.2" min="0.1" max="2.0" step="0.1" class="form-input">
+                            
+                            <label for="lambda_max">λ_max (Å)</label>
+                            <input type="range" id="lambda_max_slider" value="3.0" min="0.2" max="5.0" step="0.1" class="form-slider">
+                            <input type="number" id="lambda_max" value="3.0" min="0.2" max="5.0" step="0.1" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <span class="form-label">Detector Geometry</span>
+                        <div class="form-input-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="span-2">
+                                <label for="detectorAngle" class="form-label text-sm">Angle (°) <span class="font-normal text-gray-400">(0=Trans, 180=Back)</span></label>
+                                <div class="grid grid-cols-[1fr,65px] gap-2 items-center">
+                                    <input type="range" id="detectorAngle_slider" value="180" min="0" max="180" step="1" class="form-slider">
+                                    <input type="number" id="detectorAngle" value="180" min="0" max="180" step="1" class="form-input">
+                                </div>
+                            </div>
+                            <div class="span-2">
+                                <label for="detectorDistance" class="form-label text-sm">Dist. (mm)</label>
+                                <div class="grid grid-cols-[1fr,65px] gap-2 items-center">
+                                    <input type="range" id="detectorDistance_slider" value="36" min="5" max="200" step="1" class="form-slider">
+                                    <input type="number" id="detectorDistance" value="36" min="5" max="200" step="1" class="form-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+                            <span class="form-label" style="margin-bottom:0;">Goniometer Angles (°)</span>
+                            <button id="resetGonioBtn" class="btn-inline-reset" title="Reset to 0,0,0">Reset</button>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3" style="color: var(--text-dark);">
+                            Physical goniometer controls, relative to the orientation selected in the 'Search' tab.
+                        </p>
+                        <div class="form-input-grid" style="grid-template-columns: auto 1fr 60px;">
+                            <label for="rotX">X:</label>
+                            <input type="range" id="rotX_slider" value="0" min="-90" max="90" step="1" class="form-slider">
+                            <input type="number" id="rotX" value="0" min="-90" max="90" step="1" class="form-input">
+                            
+                            <label for="rotY">Y:</label>
+                            <input type="range" id="rotY_slider" value="0" min="-90" max="90" step="1" class="form-slider">
+                            <input type="number" id="rotY" value="0" min="-90" max="90" step="1" class="form-input">
+                            
+                            <label for="rotZ">Z:</label>
+                            <input type="range" id="rotZ_slider" value="0" min="-90" max="90" step="1" class="form-slider">
+                            <input type="number" id="rotZ" value="0" min="-90" max="90" step="1" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sampleTabContent" class="tab-content">
                     <div class="info-section">
                         <label for="bravaisLattice" class="form-label">Lattice</label>
                         <select id="bravaisLattice" class="form-select"></select>
@@ -450,78 +647,22 @@
                     </div>
 
                     <div class="info-section">
-                        <span class="form-label">X-Ray Source (Laue)</span>
-                        <div class="form-input-grid" style="grid-template-columns: auto 1fr 65px;">
-                            <label for="lambda_min">λ_min (Å)</label>
-                            <input type="range" id="lambda_min_slider" value="0.2" min="0.1" max="2.0" step="0.1" class="form-slider">
-                            <input type="number" id="lambda_min" value="0.2" min="0.1" max="2.0" step="0.1" class="form-input">
-                            
-                            <label for="lambda_max">λ_max (Å)</label>
-                            <input type="range" id="lambda_max_slider" value="3.0" min="0.2" max="5.0" step="0.1" class="form-slider">
-                            <input type="number" id="lambda_max" value="3.0" min="0.2" max="5.0" step="0.1" class="form-input">
-                        </div>
-                    </div>
-
-                   
-                    <div class="info-section">
-                        <span class="form-label">Detector Geometry</span>
-                        <div class="form-input-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            
-                            <!-- Detector Angle Slider -->
-                            <div class="span-2">
-                                <label for="detectorAngle" class="form-label text-sm">Angle (°) <span class="font-normal text-gray-400">(0=Trans, 180=Back)</span></label>
-                                <div class="grid grid-cols-[1fr,65px] gap-2 items-center">
-                                    <input type="range" id="detectorAngle_slider" value="180" min="0" max="180" step="1" class="form-slider">
-                                    <input type="number" id="detectorAngle" value="180" min="0" max="180" step="1" class="form-input">
-                                </div>
-                            </div>
-                            
-                            <div class="span-2">
-                                <label for="detectorDistance" class="form-label text-sm">Dist. (mm)</label>
-                                <div class="grid grid-cols-[1fr,65px] gap-2 items-center">
-                                    <input type="range" id="detectorDistance_slider" value="36" min="5" max="200" step="1" class="form-slider">
-                                    <input type="number" id="detectorDistance" value="36" min="5" max="200" step="1" class="form-input">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-              
-                    
-                    <div class="info-section">
-                        <span class="form-label">Goniometer Rotation (°)</span>
-                        <p class="text-sm text-gray-600 mb-3" style="color: var(--text-dark);">
-                            Represents the physical goniometer controls, relative to the orientation found in the 'Analysis' tab.
-                        </p>
-                        <div class="form-input-grid" style="grid-template-columns: auto 1fr 60px;">
-                            <label for="rotX">X:</label>
-                            <input type="range" id="rotX_slider" value="0" min="-90" max="90" step="1" class="form-slider">
-                            <input type="number" id="rotX" value="0" min="-90" max="90" step="1" class="form-input">
-                            
-                            <label for="rotY">Y:</label>
-                            <input type="range" id="rotY_slider" value="0" min="-90" max="90" step="1" class="form-slider">
-                            <input type="number" id="rotY" value="0" min="-90" max="90" step="1" class="form-input">
-                            
-                            <label for="rotZ">Z:</label>
-                            <input type="range" id="rotZ_slider" value="0" min="-90" max="90" step="1" class="form-slider">
-                            <input type="number" id="rotZ" value="0" min="-90" max="90" step="1" class="form-input">
+                        <div class="form-input-grid">
+                            <label for="calcSpotSize_slider" class="span-2" style="margin-bottom: 0;">Calc. Spot Size: <span id="calcSpotSizeValue">0.3</span> mm <span style="color: var(--text-dark); font-weight:400;">(0 = hidden)</span></label>
+                            <input type="range" id="calcSpotSize_slider" value="0.3" min="0" max="1" step="0.05" class="form-slider span-2">
                         </div>
                     </div>
                 </div>
 
-                <div id="analysisTabContent" class="tab-content">
+                <div id="measureTabContent" class="tab-content">
                     <div class="info-section">
                         <label for="imageLoader" class="form-label">Load Image</label>
                         <input type="file" id="imageLoader" accept="image/*" class="form-input">
-                        
-                        <div class="flex items-center justify-between mt-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="invertContrast" class="mr-2">
-                                <label for="invertContrast">Invert Image</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="showSimulatedSpots" class="mr-2" checked>
-                                <label for="showSimulatedSpots">Show Spots</label>
-                            </div>
+                        <div id="loadedFileName" class="text-sm mt-2" style="color: var(--text-dark); font-family: var(--font-mono);">No file loaded.</div>
+
+                        <div class="flex items-center mt-4">
+                            <input type="checkbox" id="invertContrast" class="mr-2">
+                            <label for="invertContrast">Invert Image</label>
                         </div>
 
                         <button id="setCenterBtn" class="btn btn-secondary mt-4" disabled>1. Set Center</button>
@@ -532,93 +673,115 @@
                         <span class="form-label">Set Scale</span>
                         <p class="text-sm text-gray-600 mb-2">Move the blue dot to a known reference point. Then enter its coordinates relative to the center.</p>
                         <div class="form-input-grid">
-                            <label for="scalePointX_mm">U (mm)</label> <!-- Changed from X -->
+                            <label for="scalePointX_mm">U (mm)</label>
                             <input type="number" id="scalePointX_mm" value="50" step="1" class="form-input">
-                            <label for="scalePointY_mm">V (mm)</label> <!-- Changed from Y -->
+                            <label for="scalePointY_mm">V (mm)</label>
                             <input type="number" id="scalePointY_mm" value="0" step="1" class="form-input">
                         </div>
                     </div>
 
                     <div class="info-section">
-                        <span class="form-label">Experimental Peaks (U, V)</span> <!-- Changed from X, Y -->
+                        <span class="form-label">Experimental Peaks (U, V)</span>
                         <div id="peakList"></div>
+
                         <div class="form-input-grid mt-4">
                             <button id="findPeaksBtn" class="btn btn-primary" disabled>Find Peaks</button>
-                            <button id="addPeakBtn" class="btn btn-secondary" disabled>Add Peak</button>
+                            <button id="addPeakBtn" class="btn btn-secondary" disabled>+ Add Peaks…</button>
+                        </div>
+
+                        <div class="form-input-grid mt-4">
+                            <label for="peakThreshold" class="span-2" style="margin-bottom: 0;">Peak Threshold: <span id="peakThresholdValue">80</span>%</label>
+                            <input type="range" id="peakThreshold_slider" value="80" min="20" max="90" step="1" class="form-slider span-2">
+                        </div>
+
+                        <div class="form-input-grid mt-4">
+                            <label for="markerSize_slider" class="span-2" style="margin-bottom: 0;">Peak Marker Size: <span id="markerSizeValue">0.3</span> mm <span style="color: var(--text-dark); font-weight:400;">(0 = hidden)</span></label>
+                            <input type="range" id="markerSize_slider" value="0.3" min="0" max="1" step="0.05" class="form-slider span-2">
                         </div>
                     </div>
+                </div>
 
-                </div> 
-
-                <div id="solutionsTabContent" class="tab-content">
-                    <div id="solutionsList">
-                        <div class="text-gray-600">Run a search from the "Analysis" tab to see solutions here.</div>
+                <div id="searchTabContent" class="tab-content">
+                    <div class="info-section">
+                        <button id="searchOrientBtn" class="btn btn-primary" disabled>Search Orientation</button>
+                        <p id="searchHint" class="text-sm mt-2" style="color: var(--text-dark);">Load an image, set center and scale, and add at least 4 peaks to enable search.</p>
+                    </div>
+                    <div class="info-section">
+                        <span class="form-label">Solutions</span>
+                        <div id="solutionsList">
+                            <div style="color: var(--text-dark);">Run a search to see solutions here.</div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="orientTabContent" class="tab-content">
-                    <div class="info-section">
-                        <span class="form-label">Orient to (h,k,l)</span>
-                        <p class="text-sm text-gray-600 mb-3" style="color: var(--text-dark);">
-                            Align a specific (h,k,l) plane parallel to the detector.
-                        </p>
-                        <div class="form-input-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                            <div>
-                                <label for="orient_h" class="form-label text-sm">h</label>
-                                <input type="number" id="orient_h" value="1" step="1" class="form-input">
-                            </div>
-                            <div>
-                                <label for="orient_k" class="form-label text-sm">k</label>
-                                <input type="number" id="orient_k" value="0" step="1" class="form-input">
-                            </div>
-                            <div>
-                                <label for="orient_l" class="form-label text-sm">l</label>
-                                <input type="number" id="orient_l" value="0" step="1" class="form-input">
-                            </div>
-                        </div>
-                        <button id="orientToHKLBtn" class="btn btn-primary mt-4">Calculate Goniometer Angles</button>
+                    <div id="orientDisabledNotice" class="info-section">
+                        <p class="text-sm" style="color: var(--text-dark);">Select a solution in the "Search" tab first to enable orienting to a target (h,k,l).</p>
                     </div>
 
-                    <div class="info-section">
-                        <span class="form-label">Required Goniometer Angles (°)</span>
-                        <div class="form-input-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                             <div>
-                                <label for="orient_X_out" class="form-label text-sm">X</label>
-                                <input type="text" id="orient_X_out" class="form-input-output" readonly>
+                    <div id="orientToHKLSection" style="display:none;">
+                        <div class="info-section">
+                            <span class="form-label">Orient to (h,k,l)</span>
+                            <p class="text-sm text-gray-600 mb-3" style="color: var(--text-dark);">
+                                Align a specific (h,k,l) plane parallel to the detector.
+                            </p>
+                            <div class="form-input-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label for="orient_h" class="form-label text-sm">h</label>
+                                    <input type="number" id="orient_h" value="1" step="1" class="form-input">
+                                </div>
+                                <div>
+                                    <label for="orient_k" class="form-label text-sm">k</label>
+                                    <input type="number" id="orient_k" value="0" step="1" class="form-input">
+                                </div>
+                                <div>
+                                    <label for="orient_l" class="form-label text-sm">l</label>
+                                    <input type="number" id="orient_l" value="0" step="1" class="form-input">
+                                </div>
                             </div>
-                             <div>
-                                <label for="orient_Y_out" class="form-label text-sm">Y</label>
-                                <input type="text" id="orient_Y_out" class="form-input-output" readonly>
-                            </div>
-                             <div>
-                                <label for="orient_Z_out" class="form-label text-sm">Z</label>
-                                <input type="text" id="orient_Z_out" class="form-input-output" readonly>
-                            </div>
+                            <button id="orientToHKLBtn" class="btn btn-primary mt-4">Calculate Goniometer Angles</button>
                         </div>
-<div id="orientStatus" class="text-sm mt-3" style="color: var(--text-medium);"></div>
-                    </div>
-                    
-                    <div class="info-section">
-                         <span class="form-label">Note</span>
-                         <p class="text-sm text-gray-600" style="color: var(--text-dark);">
-                            This calculates the goniometer angles (in the 'Set' tab) required to rotate from the *current base orientation* to the new target.
-                            <br><br>
-                            • The (h,k,l) plane is parallel to the detector. A (h,k,l) spot will only be visible if its required wavelength is within the "X-Ray Source" range specified in the 'Set' tab.
-                         </p>
+
+                        <div class="info-section">
+                            <span class="form-label">Required Goniometer Angles (°)</span>
+                            <div class="form-input-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                 <div>
+                                    <label for="orient_X_out" class="form-label text-sm">X</label>
+                                    <input type="text" id="orient_X_out" class="form-input-output" readonly>
+                                </div>
+                                 <div>
+                                    <label for="orient_Y_out" class="form-label text-sm">Y</label>
+                                    <input type="text" id="orient_Y_out" class="form-input-output" readonly>
+                                </div>
+                                 <div>
+                                    <label for="orient_Z_out" class="form-label text-sm">Z</label>
+                                    <input type="text" id="orient_Z_out" class="form-input-output" readonly>
+                                </div>
+                            </div>
+                            <button id="setOrientationBtn" class="btn btn-secondary mt-4" disabled>Set Orientation</button>
+                            <div id="orientStatus" class="text-sm mt-3" style="color: var(--text-medium);"></div>
+                        </div>
+                        
+                        <div class="info-section">
+                             <span class="form-label">Note</span>
+                             <p class="text-sm text-gray-600" style="color: var(--text-dark);">
+                                This calculates the goniometer angles (in the 'System' tab) required to rotate from the currently selected solution's orientation to the new target. Angles are only applied to the goniometer once you press "Set Orientation".
+                                <br><br>
+                                • The (h,k,l) plane is parallel to the detector. A (h,k,l) spot will only be visible if its required wavelength is within the "X-Ray Source" range specified in the 'System' tab.
+                             </p>
+                        </div>
                     </div>
                 </div>
-
 
             </div>
 
             <div id="controlsFooter">
                 <div id="statusInfo" class="text-sm text-gray-700 h-10 mb-2">Please load an image to begin.</div>
                 <div id="fomInfo" class="text-sm font-bold text-green-700 h-6" style="display: none;">Figure of Merit will be shown here.</div>
-                <button id="searchOrientBtn" class="btn btn-primary mt-2" disabled>Search Orientation</button>
-                <button id="generateReportBtn" class="btn btn-secondary mt-2">Generate Report</button>
             </div>
         </div>
 
+        <div id="resizeHandle"></div>
 
         <div id="mainView">
             <div id="detectorContainer">
@@ -627,7 +790,16 @@
                 <canvas id="zoomCanvas"></canvas>
                 <div id="customCursor"></div>
                 
-                <a href="Laue_2_help.html" target="_blank" id="helpButton">?</a>
+                <div id="topRightControls">
+                    <button id="themeToggleBtn" class="icon-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+                        <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                        <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                    </button>
+                    <button id="printReportBtn" class="icon-btn" title="Generate PDF report" aria-label="Generate report">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2M6 14h12v7H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                    </button>
+                    <a href="Laue_2_help.html" target="_blank" id="helpButton" class="icon-btn" title="Help" aria-label="Help">?</a>
+                </div>
 
             </div>
         </div>
@@ -668,6 +840,10 @@
         let imageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
         
         let isSettingCenter = false, isAddingPeak = false;
+        let hasSelectedSolution = false;
+        let pendingOrientAngles = null;
+        let peakMarkerSizeMm = 0.3;
+        let calcSpotSizeMm = 0.3;
         let isDraggingScalePoint = false;
         let selectedPeakIndex = null, isDraggingPeak = false;
         let editingPeakIndex = null;
@@ -843,29 +1019,46 @@
             
             const cancelBtn = document.getElementById('cancelModeBtn');
             const setCenterBtn = document.getElementById('setCenterBtn');
+            const addPeakBtn = document.getElementById('addPeakBtn');
             
             if (isSettingCenter || isAddingPeak) {
-                cancelBtn.style.display = 'block';
                 setCenterBtn.disabled = true;
                 detectorContainer.classList.add('setting-mode');
-                customCursor.style.display = 'block';
 
                  if ((isAddingPeak || isSettingCenter) && experimentalImage) { 
                     zoomCanvas.style.display = 'block';
                 }
 
-                if (isSettingCenter) statusInfoDiv.textContent = 'Click on the image to set the beam center.';
-                else if (isAddingPeak) statusInfoDiv.textContent = 'Click on the image to add a new peak.';
+                if (isSettingCenter) {
+                    detectorContainer.style.cursor = 'none';
+                    customCursor.style.display = 'block';
+                    cancelBtn.style.display = 'block';
+                    cancelBtn.textContent = 'Cancel';
+                    statusInfoDiv.textContent = 'Click on the image to set the beam center.';
+                } else if (isAddingPeak) {
+                    // A native crosshair gives more precise visual feedback for point
+                    // placement than the circular custom cursor used elsewhere.
+                    detectorContainer.style.cursor = 'crosshair';
+                    customCursor.style.display = 'none';
+                    // The Add Peaks button itself becomes the cancel control while active,
+                    // so the separate generic cancel button stays hidden here.
+                    cancelBtn.style.display = 'none';
+                    addPeakBtn.textContent = 'Cancel';
+                    addPeakBtn.disabled = false;
+                    statusInfoDiv.textContent = 'Click to add peaks (one after another). Press "Cancel" when done.';
+                }
             } else { // Idle mode
                 cancelBtn.style.display = 'none';
+                addPeakBtn.textContent = '+ Add Peaks…';
                 detectorContainer.classList.remove('setting-mode');
+                detectorContainer.style.cursor = '';
                 customCursor.style.display = 'none';
                 zoomCanvas.style.display = 'none';
                 statusInfoDiv.textContent = 'Ready.';
                 setCenterBtn.disabled = !experimentalImage;
                 
                 const scale_valid = pixels_per_mm_x > 0 && pixels_per_mm_y > 0;
-                document.getElementById('addPeakBtn').disabled = !scale_valid;
+                addPeakBtn.disabled = !scale_valid;
             }
         }
 
@@ -925,11 +1118,28 @@
         }
 
 
+        function updateSearchButtonState() {
+            const scale_valid = pixels_per_mm_x > 0 && pixels_per_mm_y > 0;
+            const ready = !!experimentalImage && !!imageCenter && scale_valid && experimentalSpots.length >= 4;
+            const btn = document.getElementById('searchOrientBtn');
+            const hint = document.getElementById('searchHint');
+            btn.disabled = !ready;
+            if (ready) {
+                hint.textContent = `Ready — ${experimentalSpots.length} peaks available.`;
+            } else if (!experimentalImage) {
+                hint.textContent = 'Load an image in the "Measure" tab to begin.';
+            } else if (!imageCenter || !scale_valid) {
+                hint.textContent = 'Set the beam center and scale in the "Measure" tab.';
+            } else {
+                hint.textContent = `Need at least 4 peaks (currently ${experimentalSpots.length}).`;
+            }
+        }
+
         function updatePeakListUI() {
             peakListEl.innerHTML = '';
             
             const scale_valid = pixels_per_mm_x > 0 && pixels_per_mm_y > 0;
-            document.getElementById('searchOrientBtn').disabled = experimentalSpots.length < 3 || !scale_valid;
+            updateSearchButtonState();
             
             if (!scale_valid) return;
             
@@ -1017,7 +1227,8 @@
                     if (intensity > maxIntensity) { maxIntensity = intensity; }
                 }
                 
-                const threshold = maxIntensity * 0.90; // 90% threshold
+                const thresholdPct = parseFloat(document.getElementById('peakThreshold_slider').value) / 100;
+                const threshold = maxIntensity * thresholdPct;
                 
                 const exclusion_radius_mm_sq = 5**2; // 5mm exclusion radius
                 const peaks = [];
@@ -1059,7 +1270,8 @@
                 const quadrants = { q1: [], q2: [], q3: [], q4: [] };
                 const centerX = imageCenter.raw_x;
                 const centerY = imageCenter.raw_y;
-                const perQuadrant = Math.max(1, Math.floor(PEAK_COUNT / 4));
+                const MAX_PEAKS_PER_QUADRANT = 50; // threshold is the real limiter now, not this cap
+                const perQuadrant = MAX_PEAKS_PER_QUADRANT;
 
                 for (const peak of peaks) {
                     if (peak.x > centerX && peak.y < centerY) {
@@ -1515,10 +1727,178 @@
             return THREE.MathUtils.radToDeg(qA.angleTo(qB));
         }
 
-    
+        // --- Cached hkl direction library + per-direction sorted angle index ---
+        // For the Hough-style orientation search below: for each library direction m, we need
+        // to quickly find all other directions n whose angle to m matches some target value.
+        // Precomputing a per-m sorted (angle, n) array once (cached, keyed by lattice/Bravais/
+        // range) turns that into an O(log L) binary search instead of an O(L) linear scan,
+        // which is what makes a large search range computationally feasible.
+        let hklIndexCache = null;
+        let hklIndexCacheKey = null;
+
+        function binaryLowerBound(sortedArr, x) {
+            let lo = 0, hi = sortedArr.length;
+            while (lo < hi) {
+                const mid = (lo + hi) >>> 1;
+                if (sortedArr[mid] < x) lo = mid + 1; else hi = mid;
+            }
+            return lo;
+        }
+
+        function buildHklDirectionIndex(reciprocalMatrix, bravaisType, hklSearchRange) {
+            const key = reciprocalMatrix.elements.join(',') + '|' + bravaisType + '|' + hklSearchRange;
+            if (hklIndexCacheKey === key && hklIndexCache) return hklIndexCache;
+
+            const hklLibrary = [];
+            for (let h = -hklSearchRange; h <= hklSearchRange; h++) {
+                for (let k = -hklSearchRange; k <= hklSearchRange; k++) {
+                    for (let l = -hklSearchRange; l <= hklSearchRange; l++) {
+                        if (h === 0 && k === 0 && l === 0) continue;
+                        if (!isReflectionAllowed(h, k, l, bravaisType)) continue;
+                        const g_vec = new THREE.Vector3(h, k, l).applyMatrix3(reciprocalMatrix).normalize();
+                        hklLibrary.push({ h, k, l, g: g_vec });
+                    }
+                }
+            }
+
+            const L = hklLibrary.length;
+            // Per-m sorted (angle, n) index. Stored as one big flat buffer with offsets to
+            // keep memory contiguous rather than L separate small typed arrays.
+            const offsets = new Int32Array(L + 1);
+            const allAngles = new Float32Array(L * (L - 1));
+            const allIdx = new Int32Array(L * (L - 1));
+            let cursor = 0;
+            const tmpAngle = new Float32Array(L - 1);
+            const tmpIdx = new Int32Array(L - 1);
+            for (let m = 0; m < L; m++) {
+                let cnt = 0;
+                for (let n = 0; n < L; n++) {
+                    if (n === m) continue;
+                    const dot = Math.max(-1, Math.min(1, hklLibrary[m].g.dot(hklLibrary[n].g)));
+                    tmpAngle[cnt] = Math.acos(dot);
+                    tmpIdx[cnt] = n;
+                    cnt++;
+                }
+                const order = new Array(cnt);
+                for (let i = 0; i < cnt; i++) order[i] = i;
+                order.sort((a, b) => tmpAngle[a] - tmpAngle[b]);
+                offsets[m] = cursor;
+                for (let i = 0; i < cnt; i++) {
+                    allAngles[cursor] = tmpAngle[order[i]];
+                    allIdx[cursor] = tmpIdx[order[i]];
+                    cursor++;
+                }
+            }
+            offsets[L] = cursor;
+
+            const result = { hklLibrary, offsets, allAngles, allIdx };
+            hklIndexCache = result;
+            hklIndexCacheKey = key;
+            return result;
+        }
+
+        function alignmentBaseRotation(fromDir, toDir) {
+            const f = fromDir.clone().normalize();
+            const t = toDir.clone().normalize();
+            const dot = Math.max(-1, Math.min(1, f.dot(t)));
+            if (dot > 1 - 1e-9) return new THREE.Matrix4().identity();
+            if (dot < -1 + 1e-9) {
+                let axis = new THREE.Vector3(1, 0, 0).cross(f);
+                if (axis.lengthSq() < 1e-6) axis = new THREE.Vector3(0, 1, 0).cross(f);
+                axis.normalize();
+                return new THREE.Matrix4().makeRotationAxis(axis, Math.PI);
+            }
+            const axis = new THREE.Vector3().crossVectors(f, t).normalize();
+            const angle = Math.acos(dot);
+            return new THREE.Matrix4().makeRotationAxis(axis, angle);
+        }
+
+        // Hough-transform-style orientation search: for a handful of reference experimental
+        // spots, hypothesize each spot's hkl identity against the FULL library, then use exact
+        // geometry (not a scan) to compute the single rotation angle about that spot's axis that
+        // would align each OTHER experimental spot to some library direction, and histogram-vote.
+        // A correct hypothesis gets many distinct spots voting for the same angle; a spurious
+        // "simple-looking" wrong hypothesis (the failure mode of the old priority-based approach)
+        // does not, because it doesn't actually need to explain more than 1-2 points by chance.
+        function houghOrientationSearch(expGVectors, reciprocalMatrix, bravaisType, hklSearchRange) {
+            const { hklLibrary, offsets, allAngles, allIdx } = buildHklDirectionIndex(reciprocalMatrix, bravaisType, hklSearchRange);
+            const L = hklLibrary.length;
+            const N = expGVectors.length;
+            const angleTol = THREE.MathUtils.degToRad(1.0);
+            const thetaBinDeg = 1.0;
+            const nBins = Math.round(360 / thetaBinDeg);
+            const numRefs = Math.min(3, N);
+
+            const candidates = [];
+            const _v = new THREE.Vector3(), _perpV = new THREE.Vector3(), _cross = new THREE.Vector3();
+
+            for (let refIdx = 0; refIdx < numRefs; refIdx++) {
+                const A = expGVectors[refIdx];
+                const betaExp = new Array(N), perpExp = new Array(N);
+                for (let k = 0; k < N; k++) {
+                    if (k === refIdx) continue;
+                    const par = A.dot(expGVectors[k]);
+                    perpExp[k] = expGVectors[k].clone().addScaledVector(A, -par);
+                    betaExp[k] = Math.acos(Math.max(-1, Math.min(1, par)));
+                }
+
+                for (let m = 0; m < L; m++) {
+                    const R_base = alignmentBaseRotation(hklLibrary[m].g, A);
+                    const start = offsets[m], end = offsets[m + 1];
+
+                    // bin -> Set of spot indices supporting it (avoids double-voting when one
+                    // spot matches multiple library directions, common near symmetric axes)
+                    const binSpots = new Map();
+
+                    for (let k = 0; k < N; k++) {
+                        if (k === refIdx) continue;
+                        const lo = start + binaryLowerBound(allAngles.subarray(start, end), betaExp[k] - angleTol);
+                        const hi = start + binaryLowerBound(allAngles.subarray(start, end), betaExp[k] + angleTol);
+                        const seenBinsThisSpot = new Set();
+                        for (let p = lo; p < hi; p++) {
+                            const n = allIdx[p];
+                            _v.copy(hklLibrary[n].g).applyMatrix4(R_base);
+                            const parV = A.dot(_v);
+                            _perpV.copy(_v).addScaledVector(A, -parV);
+                            const perpLen = _perpV.length(), dPerpLen = perpExp[k].length();
+                            if (perpLen < 1e-6 || dPerpLen < 1e-6) continue;
+                            const cosT = _perpV.dot(perpExp[k]) / (perpLen * dPerpLen);
+                            _cross.crossVectors(_perpV, perpExp[k]);
+                            const sinT = A.dot(_cross) / (perpLen * dPerpLen);
+                            let thetaDeg = THREE.MathUtils.radToDeg(Math.atan2(sinT, cosT));
+                            if (thetaDeg < 0) thetaDeg += 360;
+                            const b = Math.floor(thetaDeg / thetaBinDeg) % nBins;
+                            if (seenBinsThisSpot.has(b)) continue;
+                            seenBinsThisSpot.add(b);
+                            if (!binSpots.has(b)) binSpots.set(b, new Set());
+                            binSpots.get(b).add(k);
+                        }
+                    }
+
+                    let bestBin = -1, bestVotes = 0;
+                    for (const [b, spots] of binSpots) {
+                        if (spots.size > bestVotes) { bestVotes = spots.size; bestBin = b; }
+                    }
+                    if (bestVotes >= 2) {
+                        const thetaDeg = (bestBin + 0.5) * thetaBinDeg;
+                        const rotMatrix = new THREE.Matrix4()
+                            .makeRotationAxis(A, THREE.MathUtils.degToRad(thetaDeg))
+                            .multiply(R_base);
+                        candidates.push({ votes: bestVotes, rotMatrix });
+                    }
+                }
+            }
+
+            candidates.sort((a, b) => b.votes - a.votes);
+            return candidates;
+        }
+
         async function findOrientation() {
 
             const searchBtn = document.getElementById('searchOrientBtn');
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching…';
+            document.body.style.cursor = 'wait';
 
             // 1. Get experimental parameters
             const D = getValidatedNumericInput('detectorDistance', 1, 1000, 36);
@@ -1547,26 +1927,14 @@
             await new Promise(resolve => setTimeout(resolve, 10));
             const expGVectors = expSpots_mm.map(spot => getScatteringVector(spot.x, spot.y, D, angle_deg)); // <-- Pass angle
             
-            // 3. Generate reciprocal lattice library
-            statusInfoDiv.textContent = 'Generating reciprocal lattice library...';
+            // 3. Hough-style orientation search: hypothesize each reference spot's hkl identity
+            // against the full (cached) library, and histogram-vote on the rotation angle that
+            // makes the most OTHER experimental spots align with library directions simultaneously.
+            statusInfoDiv.textContent = 'Building reflection library (cached after first run)...';
             await new Promise(resolve => setTimeout(resolve, 10));
-            
-            const HKL_SEARCH_RANGE = 2; // ONLY lowest indices: ±2
-            const hklLibrary = [];
-            for (let h = -HKL_SEARCH_RANGE; h <= HKL_SEARCH_RANGE; h++) {
-                for (let k = -HKL_SEARCH_RANGE; k <= HKL_SEARCH_RANGE; k++) {
-                    for (let l = -HKL_SEARCH_RANGE; l <= HKL_SEARCH_RANGE; l++) {
-                        if (h === 0 && k === 0 && l === 0) continue;
-                        if (!isReflectionAllowed(h, k, l, bravaisType)) continue;
-                        
-                        const g_vec = new THREE.Vector3(h, k, l).applyMatrix3(reciprocalMatrix);
-                        g_vec.normalize();
-                        const hkl_sum = Math.abs(h) + Math.abs(k) + Math.abs(l);
-                        hklLibrary.push({ h, k, l, g: g_vec, hkl_sum: hkl_sum, priority: 1.0 / (h*h + k*k + l*l) });
-                    }
-                }
-            }
-            hklLibrary.sort((a, b) => a.hkl_sum - b.hkl_sum);
+
+            const HKL_SEARCH_RANGE = 8; // reaches realistic higher-index reflections near zone axes
+            const { hklLibrary } = buildHklDirectionIndex(reciprocalMatrix, bravaisType, HKL_SEARCH_RANGE);
             if (hklLibrary.length < 2) {
                 statusInfoDiv.textContent = 'Not enough valid reflections generated.';
                 searchBtn.disabled = false;
@@ -1574,58 +1942,25 @@
                 document.body.style.cursor = 'default';
                 return;
             }
-            
-            // 4. Match pairs
-            statusInfoDiv.textContent = 'Matching experimental pairs to hkl pairs...';
+
+            statusInfoDiv.textContent = 'Searching orientations (voting across reference spots)...';
             await new Promise(resolve => setTimeout(resolve, 10));
-            
-            const angleTolerance = THREE.MathUtils.degToRad(5.0);
-            const minPairAngle = THREE.MathUtils.degToRad(5.0); // skip near-collinear pairs (degenerate Kabsch)
-            const candidateOrientations = [];
-            for (let i = 0; i < expGVectors.length; i++) {
-                for (let j = i + 1; j < expGVectors.length; j++) {
-                    const g_exp_i = expGVectors[i];
-                    const g_exp_j = expGVectors[j];
-                    const dot_exp = Math.max(-1, Math.min(1, g_exp_i.dot(g_exp_j)));
-                    const angle_exp = Math.acos(dot_exp);
-                    // Skip if the two experimental vectors are nearly parallel or antiparallel
-                    if (angle_exp < minPairAngle || angle_exp > Math.PI - minPairAngle) continue;
-                    
-                    for (let m = 0; m < hklLibrary.length; m++) {
-                        for (let n = m + 1; n < hklLibrary.length; n++) {
-                            const hkl_m = hklLibrary[m];
-                            const hkl_n = hklLibrary[n];
-                            const dot_sim = Math.max(-1, Math.min(1, hkl_m.g.dot(hkl_n.g)));
-                            const angle_sim = Math.acos(dot_sim);
-                            // Skip near-collinear simulated pairs as well
-                            if (angle_sim < minPairAngle || angle_sim > Math.PI - minPairAngle) continue;
-                            
-                            if (Math.abs(angle_exp - angle_sim) < angleTolerance) {
-                                candidateOrientations.push({
-                                    exp_indices: [i, j], hkl_indices: [m, n],
-                                    priority: hkl_m.priority + hkl_n.priority,
-                                    angle_exp: angle_exp, angle_sim: angle_sim
-                                });
-                            }
-                        }
-                    }
-                }
-            }
+
+            const candidateOrientations = houghOrientationSearch(expGVectors, reciprocalMatrix, bravaisType, HKL_SEARCH_RANGE);
             if (candidateOrientations.length === 0) {
-                statusInfoDiv.textContent = 'No angle matches found.';
+                statusInfoDiv.textContent = 'No consistent orientation found — try adding more peaks.';
                 searchBtn.disabled = false;
                 searchBtn.textContent = 'Search Orientation';
                 document.body.style.cursor = 'default';
                 return;
             }
-            candidateOrientations.sort((a, b) => b.priority - a.priority);
             
-            // 5. Test candidates
-            statusInfoDiv.textContent = `Testing ${Math.min(candidateOrientations.length, 100)} orientation candidates...`;
+            // 4. Refine and score top candidates (by vote count)
+            statusInfoDiv.textContent = `Testing ${Math.min(candidateOrientations.length, 500)} orientation candidates...`;
             await new Promise(resolve => setTimeout(resolve, 10));
             
             const solutions = [];
-            const maxCandidates = Math.min(100, candidateOrientations.length);
+            const maxCandidates = Math.min(500, candidateOrientations.length);
        
             let lambda_min_val = getValidatedNumericInput('lambda_min', 0.1, 20.0, 0.2);
             let lambda_max_val = getValidatedNumericInput('lambda_max', 0.1, 20.0, 3.0);
@@ -1650,36 +1985,52 @@
 
             
             for (let c = 0; c < maxCandidates; c++) {
-                const cand = candidateOrientations[c];
-                const expVecs = [ expGVectors[cand.exp_indices[0]], expGVectors[cand.exp_indices[1]] ];
-                const simVecs = [ hklLibrary[cand.hkl_indices[0]].g, hklLibrary[cand.hkl_indices[1]].g ];
-                
-                const rotMatrix = kabschRotation(simVecs, expVecs);
-                if (!rotMatrix) continue;
-                
-                // Apply the rotation matrix DIRECTLY (no Euler round-trip — avoids gimbal lock).
-                baseOrientationMatrix.copy(rotMatrix);
-                // Euler is computed only for display.
-                const euler = new THREE.Euler().setFromRotationMatrix(rotMatrix, 'XYZ');
-                
-                const simSpots = getSimulatedSpots(0, 0, 0, detectorParams, HKL_RANGE);
-                
-                // Score this orientation
+                const seedRotMatrix = candidateOrientations[c].rotMatrix;
+                if (!seedRotMatrix) continue;
+
+                // --- Iterative refinement (ICP-style): refit using ALL matched spots,
+                // not just the original 2-point seed. A coincidental angle match on the
+                // seed pair (common near symmetric zone axes) gets corrected here if the
+                // seed was close enough to fall into the true orientation's basin.
+                let rotMatrix = seedRotMatrix;
                 const tolerance_mm = 4.0;
-                let matches = 0;
-                let sumSquaredError = 0;
-                for (const expSpot of expSpots_mm) {
-                    let minDist = Infinity;
-                    for (const simSpot of simSpots) {
-                        const dist = Math.sqrt((expSpot.x - simSpot.x_2d)**2 + (expSpot.y - simSpot.y_2d)**2);
-                        if (dist < minDist) minDist = dist;
+                let matches = 0, sumSquaredError = 0, simSpots = null;
+
+                for (let iter = 0; iter < 4; iter++) {
+                    baseOrientationMatrix.copy(rotMatrix);
+                    simSpots = getSimulatedSpots(0, 0, 0, detectorParams, HKL_RANGE);
+
+                    const refitA = [], refitB = []; // crystal-frame dirs, lab-frame (experimental) dirs
+                    matches = 0; sumSquaredError = 0;
+                    for (let ei = 0; ei < expSpots_mm.length; ei++) {
+                        const expSpot = expSpots_mm[ei];
+                        let minDist = Infinity, bestSim = null;
+                        for (const simSpot of simSpots) {
+                            const dist = Math.sqrt((expSpot.x - simSpot.x_2d)**2 + (expSpot.y - simSpot.y_2d)**2);
+                            if (dist < minDist) { minDist = dist; bestSim = simSpot; }
+                        }
+                        if (minDist < tolerance_mm) {
+                            matches++;
+                            sumSquaredError += minDist * minDist;
+                            const crystalDir = new THREE.Vector3(bestSim.h, bestSim.k, bestSim.l).applyMatrix3(reciprocalMatrix).normalize();
+                            refitA.push(crystalDir);
+                            refitB.push(expGVectors[ei]);
+                        }
                     }
-                    if (minDist < tolerance_mm) {
-                        matches++;
-                        sumSquaredError += minDist * minDist;
-                    }
+
+                    if (refitA.length < 2) break; // can't refit further; keep current rotMatrix
+                    const refit = kabschRotation(refitA, refitB);
+                    if (!refit) break;
+
+                    const moved = misorientationDeg(rotMatrix.elements, refit.elements);
+                    rotMatrix = refit;
+                    if (moved < 0.05) break; // converged
                 }
-                
+
+
+                baseOrientationMatrix.copy(rotMatrix);
+                const euler = new THREE.Euler().setFromRotationMatrix(rotMatrix, 'XYZ');
+
                 const minRequiredMatches = Math.max(2, Math.ceil(expSpots_mm.length / 2));
                 if (matches >= minRequiredMatches) {
                     const rmsError = Math.sqrt(sumSquaredError / matches);
@@ -1797,6 +2148,12 @@
                     orientationSolutions.splice(index, 1);
                     updateSolutionsTab();
                     fomInfoDiv.style.display = 'none';
+                    if (orientationSolutions.length === 0) {
+                        hasSelectedSolution = false;
+                        pendingOrientAngles = null;
+                        document.getElementById('orientDisabledNotice').style.display = 'block';
+                        document.getElementById('orientToHKLSection').style.display = 'none';
+                    }
                 });
                 
                 solutionsListDiv.appendChild(item);
@@ -1841,12 +2198,20 @@
             
             fomInfoDiv.innerHTML = `Displaying Solution ${index + 1} (Score: ${sol.score.toFixed(4)})`;
             fomInfoDiv.style.display = 'block';
+
+            // Selecting a solution is what makes "Orient to (h,k,l)" meaningful:
+            // it defines the base orientation the target hkl gets rotated to.
+            hasSelectedSolution = true;
+            document.getElementById('orientDisabledNotice').style.display = 'none';
+            document.getElementById('orientToHKLSection').style.display = 'block';
         }
   
         //  calculates the required goniometer angles
         // relative to the current base orientation... the orientation required (negative to the position)
         function orientToHKL() {
             orientStatusDiv.textContent = 'Calculating...';
+            pendingOrientAngles = null;
+            document.getElementById('setOrientationBtn').disabled = true;
 
             // 1. Get h, k, l inputs
             const h = parseInt(document.getElementById('orient_h').value);
@@ -1908,13 +2273,23 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             const rotY_deg = THREE.MathUtils.radToDeg(gonioEuler.y);
             const rotZ_deg = THREE.MathUtils.radToDeg(gonioEuler.z);
             
-            // 8. Set UI controls
-            // Set the read-only fields in the Orient tab
+            // 8. Populate the read-only output fields only. The actual goniometer
+            // (System tab) is NOT touched until the user presses "Set Orientation".
             document.getElementById('orient_X_out').value = rotX_deg.toFixed(2);
             document.getElementById('orient_Y_out').value = rotY_deg.toFixed(2);
             document.getElementById('orient_Z_out').value = rotZ_deg.toFixed(2);
-            
-            // Set the main goniometer sliders (now on the "Set" tab)
+            pendingOrientAngles = { rotX_deg, rotY_deg, rotZ_deg, h, k, l, angle_deg };
+            document.getElementById('setOrientationBtn').disabled = false;
+
+            orientStatusDiv.textContent = `Calculated. Press "Set Orientation" to apply to the goniometer.`;
+        }
+
+        // Applies the most recently calculated Orient-to-hkl angles to the actual
+        // goniometer (System tab), only when the user explicitly requests it.
+        function applyCalculatedOrientation() {
+            if (!pendingOrientAngles) return;
+            const { rotX_deg, rotY_deg, rotZ_deg, h, k, l, angle_deg } = pendingOrientAngles;
+
             document.getElementById('rotX').value = rotX_deg.toFixed(2);
             document.getElementById('rotY').value = rotY_deg.toFixed(2);
             document.getElementById('rotZ').value = rotZ_deg.toFixed(2);
@@ -1922,23 +2297,17 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             document.getElementById('rotY_slider').value = rotY_deg;
             document.getElementById('rotZ_slider').value = rotZ_deg;
 
-            // 9. Update visualization
             updateVisualization();
 
-
-            // 10. Update status message (MODIFIED: Physics check removed)
-            let statusMsg = `Goniometer set to align (${h},${k},${l}) normal parallel to the ${angle_deg.toFixed(1)}° detector normal.`;
-            
-            //  the wavelength check is not relevant.
-            orientStatusDiv.textContent = statusMsg;
+            orientStatusDiv.textContent = `Goniometer set to align (${h},${k},${l}) normal parallel to the ${angle_deg.toFixed(1)}° detector normal.`;
 
         }
 
 
         async function generateReport() {
-            const reportButton = document.getElementById('generateReportBtn');
-            reportButton.textContent = 'Generating...';
+            const reportButton = document.getElementById('printReportBtn');
             reportButton.disabled = true;
+            statusInfoDiv.textContent = 'Generating report...';
             document.body.style.cursor = 'wait';
             
             try {
@@ -2276,7 +2645,6 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 console.error("Failed to generate PDF:", error);
                 statusInfoDiv.textContent = `Error generating PDF: ${error.message}`;
             } finally {
-                reportButton.textContent = 'Generate Report';
                 reportButton.disabled = false;
                 document.body.style.cursor = 'default';
             }
@@ -2330,28 +2698,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
         detectorCtx.stroke();
     }
 
-    // Draw experimental spots
-    if (experimentalSpots.length > 0) {
-        detectorCtx.font = '12px Arial';
-        detectorCtx.textAlign = 'center';
-        detectorCtx.textBaseline = 'middle';
-        experimentalSpots.forEach((spot, index) => {
-            const canvas_x = spot.raw_x * imageTransform.scale + imageTransform.offsetX;
-            const canvas_y = spot.raw_y * imageTransform.scale + imageTransform.offsetY;
-            const isSelected = (index === selectedPeakIndex);
-            const isEditing = (index === editingPeakIndex);
-            const color = isEditing ? '#ff4444' : (isSelected ? '#44aaff' : '#00ff00');
-            detectorCtx.strokeStyle = color;
-            detectorCtx.lineWidth = (isEditing || isSelected) ? 2.5 : 1.5;
-            detectorCtx.beginPath();
-            detectorCtx.arc(canvas_x, canvas_y, 7, 0, 2 * Math.PI);
-            detectorCtx.stroke();
-            detectorCtx.fillStyle = color;
-            detectorCtx.fillText(index + 1, canvas_x, canvas_y);
-        });
-    }
-    
-    // Determine pixel/mm scale
+    // Determine pixel/mm scale (needed before drawing markers, since sizes are now in physical mm)
     const scale_valid = pixels_per_mm_x > 0 && pixels_per_mm_y > 0;
     let draw_scale_x, draw_scale_y;
     if (scale_valid) {
@@ -2364,10 +2711,28 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
         draw_scale_x = guess_scale; 
         draw_scale_y = guess_scale;
     }
+    const mmScaleAvg = (draw_scale_x + draw_scale_y) / 2;
 
+    // Draw experimental spots (plain circles, no index numbers — size 0 hides them)
+    if (experimentalSpots.length > 0 && peakMarkerSizeMm > 0) {
+        const peakRadiusPx = peakMarkerSizeMm * mmScaleAvg;
+        experimentalSpots.forEach((spot, index) => {
+            const canvas_x = spot.raw_x * imageTransform.scale + imageTransform.offsetX;
+            const canvas_y = spot.raw_y * imageTransform.scale + imageTransform.offsetY;
+            const isSelected = (index === selectedPeakIndex);
+            const isEditing = (index === editingPeakIndex);
+            const color = isEditing ? '#ff4444' : (isSelected ? '#44aaff' : '#00ff00');
+            detectorCtx.strokeStyle = color;
+            detectorCtx.lineWidth = (isEditing || isSelected) ? 2.5 : 1.5;
+            detectorCtx.beginPath();
+            detectorCtx.arc(canvas_x, canvas_y, peakRadiusPx, 0, 2 * Math.PI);
+            detectorCtx.stroke();
+        });
+    }
 
-    // Draw simulated Laue spots
-    if (document.getElementById('showSimulatedSpots').checked) {
+    // Draw simulated Laue spots (size 0 hides them — replaces the old "Show Spots" checkbox)
+    if (calcSpotSizeMm > 0) {
+        const spotRadiusPx = calcSpotSizeMm * mmScaleAvg;
         detectorSpots.forEach(spot => { 
             const isHighlighted = (highlightedSpot === spot); 
             let canvasX, canvasY;
@@ -2386,7 +2751,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             
             let spotColor = isHighlighted ? '#ff4444' : '#ffff00'; 
             detectorCtx.beginPath();
-            detectorCtx.arc(canvasX, canvasY, isHighlighted ? 6 : 2.5, 0, 2 * Math.PI);
+            detectorCtx.arc(canvasX, canvasY, isHighlighted ? spotRadiusPx * 1.6 : spotRadiusPx, 0, 2 * Math.PI);
             detectorCtx.fillStyle = spotColor;
             detectorCtx.fill(); 
             detectorCtx.strokeStyle = 'black';
@@ -2405,8 +2770,10 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
         const startX = (w / 2) - (scaleBar_px / 2);
         const endX = (w / 2) + (scaleBar_px / 2);
         
-        detectorCtx.strokeStyle = '#ffffff';
-        detectorCtx.fillStyle = '#ffffff';
+        const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+        const scaleBarColor = isLightTheme ? '#1a2130' : '#ffffff';
+        detectorCtx.strokeStyle = scaleBarColor;
+        detectorCtx.fillStyle = scaleBarColor;
         detectorCtx.lineWidth = 2;
         detectorCtx.font = '14px Arial';
         detectorCtx.textAlign = 'center';
@@ -2425,7 +2792,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
 }
 
     function identifyDetectorSpot(event, isClick) {
-    if (detectorSpots.length === 0 || !document.getElementById('showSimulatedSpots').checked) return;
+    if (detectorSpots.length === 0 || calcSpotSizeMm <= 0) return;
 
     const rect = detectorCanvas.getBoundingClientRect();
     const canvas_x = event.clientX - rect.left;
@@ -2556,7 +2923,8 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             reader.onload = function(e) {
                 experimentalImage = new Image();
                 experimentalImage.onload = function() {
-                    // Reset analysis
+                    // Loading a new image resets the whole analysis state — a different
+                    // image invalidates the center, scale, peaks, and any found solution.
                     imageCenter = null;
                     scalePoint = null;
                     pixels_per_mm_x = -1;
@@ -2564,6 +2932,8 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                     experimentalSpots = [];
                     selectedPeakIndex = null;
                     orientationSolutions = [];
+                    hasSelectedSolution = false;
+                    pendingOrientAngles = null;
                     
                     baseOrientationMatrix.identity(); // Reset base orientation
                     document.getElementById('rotX').value = 0;
@@ -2573,14 +2943,24 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                     document.getElementById('rotY_slider').value = 0;
                     document.getElementById('rotZ_slider').value = 0;
                     
+                    document.getElementById('loadedFileName').textContent = file.name;
                     document.getElementById('setCenterBtn').disabled = false;
                     document.getElementById('scaleControls').style.display = 'none';
                     document.getElementById('findPeaksBtn').disabled = true;
-                    document.getElementById('searchOrientBtn').disabled = true;
+                    document.getElementById('addPeakBtn').disabled = true;
+                    document.getElementById('setOrientationBtn').disabled = true;
+                    document.getElementById('orient_X_out').value = '';
+                    document.getElementById('orient_Y_out').value = '';
+                    document.getElementById('orient_Z_out').value = '';
+                    orientStatusDiv.textContent = '';
+                    document.getElementById('orientDisabledNotice').style.display = 'block';
+                    document.getElementById('orientToHKLSection').style.display = 'none';
+                    fomInfoDiv.style.display = 'none';
                     
                     document.getElementById('invertContrast').checked = analyzeImageContrast();
                     updatePeakListUI();
                     updateSolutionsTab();
+                    updateSearchButtonState();
                     onWindowResize(); // This will also call redrawDetector
                     setUIMode('idle');
                     
@@ -2770,7 +3150,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 selectedPeakIndex = experimentalSpots.length - 1;
                 updatePeakListUI();
                 redrawDetector();
-                setUIMode('idle');
+                statusInfoDiv.textContent = `${experimentalSpots.length} peaks. Click to add another, or press "Cancel" when done.`;
                 return;
             }
 
@@ -2817,13 +3197,16 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             experimentCtx.clearRect(0, 0, w, h);
             
             if (experimentalImage) { 
+                const MARGIN = 10; // px — keeps edge peaks/scale points clickable, off the container border
+                const availW = Math.max(1, w - 2 * MARGIN);
+                const availH = Math.max(1, h - 2 * MARGIN);
                 const imgAspect = experimentalImage.width / experimentalImage.height;
-                const canvasAspect = w / h; 
+                const availAspect = availW / availH; 
                 let drawW, drawH, dx, dy; 
-                if (imgAspect > canvasAspect) { 
-                    drawW = w; drawH = w / imgAspect; dx = 0; dy = (h - drawH) / 2; 
+                if (imgAspect > availAspect) { 
+                    drawW = availW; drawH = availW / imgAspect; dx = MARGIN; dy = MARGIN + (availH - drawH) / 2; 
                 } else { 
-                    drawH = h; drawW = h * imgAspect; dy = 0; dx = (w - drawW) / 2; 
+                    drawH = availH; drawW = availH * imgAspect; dy = MARGIN; dx = MARGIN + (availW - drawW) / 2; 
                 } 
                 experimentCtx.drawImage(experimentalImage, dx, dy, drawW, drawH); 
                 imageTransform.scale = drawW / experimentalImage.width; 
@@ -2855,8 +3238,61 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 number.addEventListener('change', () => { slider.value = number.value; if(callback) callback(); }); 
             }
         }
+
+        function resetGoniometer() {
+            document.getElementById('rotX').value = 0;
+            document.getElementById('rotY').value = 0;
+            document.getElementById('rotZ').value = 0;
+            document.getElementById('rotX_slider').value = 0;
+            document.getElementById('rotY_slider').value = 0;
+            document.getElementById('rotZ_slider').value = 0;
+            updateVisualization();
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.getElementById('themeIconMoon').style.display = (theme === 'dark') ? 'block' : 'none';
+            document.getElementById('themeIconSun').style.display = (theme === 'light') ? 'block' : 'none';
+            redrawDetector();
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const next = (current === 'dark') ? 'light' : 'dark';
+            applyTheme(next);
+            try { localStorage.setItem('laue_theme', next); } catch (e) { /* storage may be unavailable */ }
+        }
+
+        function initResizeHandle() {
+            const handle = document.getElementById('resizeHandle');
+            const panel = document.getElementById('controlsPanel');
+            let dragging = false;
+
+            handle.addEventListener('mousedown', (e) => {
+                dragging = true;
+                handle.classList.add('dragging');
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                const pct = Math.min(65, Math.max(16, (e.clientX / window.innerWidth) * 100));
+                panel.style.width = pct + '%';
+                onWindowResize();
+            });
+            window.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                handle.classList.remove('dragging');
+                document.body.style.userSelect = '';
+            });
+        }
         
         function init() {
+            let savedTheme = 'dark';
+            try { savedTheme = localStorage.getItem('laue_theme') || 'dark'; } catch (e) { /* storage may be unavailable */ }
+            applyTheme(savedTheme);
+
             // Get DOM elements
             statusInfoDiv = document.getElementById('statusInfo');
             fomInfoDiv = document.getElementById('fomInfo');
@@ -2905,17 +3341,39 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             document.getElementById('invertContrast').addEventListener('change', () => { 
                 if (experimentalImage) onWindowResize(); 
             });
-            document.getElementById('showSimulatedSpots').addEventListener('change', redrawDetector);
             
             document.getElementById('scalePointX_mm').addEventListener('input', updateScale);
             document.getElementById('scalePointY_mm').addEventListener('input', updateScale);
             
             document.getElementById('findPeaksBtn').addEventListener('click', detectPeaks);
-            document.getElementById('addPeakBtn').addEventListener('click', () => setUIMode('add-peak'));
+            document.getElementById('addPeakBtn').addEventListener('click', () => setUIMode(isAddingPeak ? 'idle' : 'add-peak'));
+            document.getElementById('markerSize_slider').addEventListener('input', (e) => {
+                peakMarkerSizeMm = parseFloat(e.target.value);
+                document.getElementById('markerSizeValue').textContent = peakMarkerSizeMm.toFixed(2);
+                redrawDetector();
+            });
+            document.getElementById('calcSpotSize_slider').addEventListener('input', (e) => {
+                calcSpotSizeMm = parseFloat(e.target.value);
+                document.getElementById('calcSpotSizeValue').textContent = calcSpotSizeMm.toFixed(2);
+                redrawDetector();
+            });
+            document.getElementById('peakThreshold_slider').addEventListener('input', (e) => {
+                document.getElementById('peakThresholdValue').textContent = e.target.value;
+            });
+            document.getElementById('peakThreshold_slider').addEventListener('change', () => {
+                // Re-running Find Peaks live when the threshold changes only makes sense
+                // once there's actually something to detect against.
+                if (experimentalImage && imageCenter && pixels_per_mm_x > 0) detectPeaks();
+            });
+            document.getElementById('resetGonioBtn').addEventListener('click', resetGoniometer);
             
             document.getElementById('searchOrientBtn').addEventListener('click', findOrientation);
-            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+            document.getElementById('printReportBtn').addEventListener('click', generateReport);
             document.getElementById('orientToHKLBtn').addEventListener('click', orientToHKL);
+            document.getElementById('setOrientationBtn').addEventListener('click', applyCalculatedOrientation);
+            document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+            initResizeHandle();
 
             // Setup canvas listeners
             detectorContainer.addEventListener('mousemove', e => {
@@ -2925,8 +3383,8 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                     customCursor.style.top = `${e.clientY - rect.top}px`;
                 }
             });
-            detectorContainer.addEventListener('mouseenter', () => { if (isSettingCenter || isAddingPeak) customCursor.style.display = 'block'; });
-            detectorContainer.addEventListener('mouseleave', () => { if (isSettingCenter || isAddingPeak) customCursor.style.display = 'none'; });
+            detectorContainer.addEventListener('mouseenter', () => { if (isSettingCenter) customCursor.style.display = 'block'; });
+            detectorContainer.addEventListener('mouseleave', () => { if (isSettingCenter) customCursor.style.display = 'none'; });
             
             detectorCanvas.addEventListener('contextmenu', e => e.preventDefault());
             detectorCanvas.addEventListener('wheel', onDetectorWheel, { passive: false });
@@ -2936,8 +3394,9 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             window.addEventListener('resize', onWindowResize);
             
             onWindowResize();
-            setActiveTab('set');
-            statusInfoDiv.textContent = 'Ready. Go to "Analysis" tab to load an image.';
+            setActiveTab('system');
+            updateSearchButtonState();
+            statusInfoDiv.textContent = 'Ready. Go to "Measure" tab to load an image.';
         }
         
         window.addEventListener('load', init);

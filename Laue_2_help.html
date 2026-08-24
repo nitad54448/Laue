@@ -6,7 +6,7 @@
     <title>Laue Simulator & Indexer — Help & Theory</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --dark-bg: #111827;
@@ -68,7 +68,7 @@
         a { color: var(--primary-accent); text-decoration: none; font-weight: 500; }
         a:hover { text-decoration: underline; }
         code {
-            font-family: 'Source Code Pro', monospace; background-color: var(--code-bg);
+            font-family: 'JetBrains Mono', monospace; background-color: var(--code-bg);
             color: var(--code-text); padding: 0.2em 0.4em;
             border-radius: 0.25rem; font-size: 0.9em;
         }
@@ -126,63 +126,80 @@
             <ol>
               <li><strong>Simulation:</strong> Define a lattice and detector to predict a Laue pattern (virtual goniometer + polychromatic beam).</li>
               <li><strong>Indexing:</strong> Load a real image, pick peaks, and solve the unknown crystal orientation; then simulate and overlay spots for verification.</li>
-              <li><strong>Orientation:</strong> Calculate the goniometer angles required to geometrically align a specific (h,k,l) plane normal with the detector normal.</li>
+              <li><strong>Orientation:</strong> Calculate the goniometer angles required to geometrically align a specific (h,k,l) plane normal with the detector normal, and apply them on demand.</li>
             </ol>
+            <p>The controls are organized into five tabs — <b>System</b>, <b>Sample</b>, <b>Measure</b>, <b>Search</b>, <b>Orient</b> — reflecting the order you'd typically move through a real experiment. The left panel is resizable (drag its right edge) and the app supports both dark and light themes (toggle icon, top right).</p>
         </section>
+
 
         <section id="orientations">
             <h2>Two Orientations: how rotations are applied</h2>
             <blockquote>
-                <p><strong>Base Orientation (unknown):</strong> The sample’s as-mounted orientation found by the search. Selecting a solution sets this as the internal base matrix.</p>
-                <p><strong>Goniometer Rotation (knobs):</strong> The <code>X,Y,Z</code> sliders in the <em>Set</em> tab. They rotate <em>on top of</em> the Base Orientation and also respond to canvas drag.</p>
+                <p><strong>Base Orientation (unknown):</strong> The sample's as-mounted orientation found by the search. Selecting a solution in the <em>Search</em> tab sets this as the internal base matrix, and also unlocks the <em>Orient</em> tab.</p>
+                <p><strong>Goniometer Angles (knobs):</strong> The <code>X,Y,Z</code> sliders in the <em>System</em> tab. They rotate <em>on top of</em> the Base Orientation and also respond to canvas drag. A <b>Reset</b> button next to the label zeros all three at once.</p>
             </blockquote>
-            <p><b>Total rotation used in simulation</b> = <code>Base</code> then <code>Goniometer</code> (XYZ Euler). After you choose a solution, the sliders are reset to 0 so the display shows the solved orientation. Moving a slider then offsets from that base.</p>
+            <p><b>Total rotation used in simulation</b> = <code>Base</code> then <code>Goniometer</code> (XYZ Euler). After you select a solution, the sliders are reset to 0 so the display shows the solved orientation. Moving a slider then offsets from that base.</p>
+            <p>The <em>Orient</em> tab's "Calculate Goniometer Angles" only <em>previews</em> the X/Y/Z needed to reach a target (h,k,l) — it does not move anything. The goniometer only changes when you press <b>Set Orientation</b>.</p>
         </section>
+
 
         <section id="workflow">
             <h2>Typical workflow (indexing)</h2>
             <ol>
-              <li><b>Analysis → Load Image.</b> If spots are white on black, check <i>Invert Image</i>. Toggle <i>Show Spots</i> to view overlays.</li>
-              <li><b>1. Set Center.</b> Click the beam center. This enables <b>Set Scale</b> and shows a blue reference crosshair.</li>
-              <li><b>Set Scale.</b> Drag the blue crosshair to a known reference. Enter its <code>U (mm), V (mm)</code> from the center. (The app uses separate px/mm for U and V; V is inverted screen-to-mm.)</li>
-              <li><b>Experimental Peaks.</b> Use <i>Find Peaks</i> or <i>Add Peak</i>. Prefer 3–5 peaks of <strong>high symmetry</strong> far apart and across quadrants. You can refine (U, V) values directly in the list.</li>
-              <li><b>Set.</b> Choose Bravais type, enter lattice parameters, wavelength band. Set the <b>Detector Angle</b> (0°=transmission, 180°=back-scatter) and <b>Distance (mm)</b> exactly as in the experiment.</li>
-              <li><b>Search Orientation.</b> Wait for results; then open <b>Solutions</b>, click the best row (lowest Score, best Matches/RMS). The view updates with a yellow overlay.</li>
-              <li><b>(Optional) Orient tab.</b> Enter target (h,k,l) and click <i>Calculate Goniometer Angles</i>. The tool calculates the X/Y/Z sliders needed to <strong>geometrically align</strong> the (h,k,l) <strong>plane normal</strong> to be parallel with the <strong>detector normal</strong> (based on the current <b>Detector Angle</b>).</li>
-              <li><b>Generate Report.</b> Saves a PDF with parameters, peak table, best solution matches (assigned hkl), and a summary of all solutions.</li>
+              <li><b>Sample tab.</b> Choose the Bravais lattice and enter cell parameters. The <i>Calc. Spot Size</i> slider controls how big simulated (yellow) spots are drawn — set it to <code>0</code> to hide them entirely.</li>
+              <li><b>System tab.</b> Set the X-ray source band (<code>λ_min</code>–<code>λ_max</code>) and the detector <b>Angle</b> / <b>Distance</b> to match your experiment. The Goniometer Angles here start at 0,0,0 (use <b>Reset</b> to return to that at any time).</li>
+              <li><b>Measure → Load Image.</b> The file name appears below the button. <b>Loading a new image resets everything</b> — center, scale, peaks, solutions, and the Orient tab all clear. If spots are white on black, check <i>Invert Image</i>.</li>
+              <li><b>1. Set Center.</b> Click the beam center on the image.</li>
+              <li><b>Set Scale.</b> Drag the blue crosshair to a known reference point and enter its real <code>U (mm), V (mm)</code> relative to the center.</li>
+              <li><b>Experimental Peaks.</b> Click <i>Find Peaks</i> for automatic detection, or <i>+ Add Peaks…</i> to place them by hand — the cursor becomes a crosshair, the button itself turns into <b>Cancel</b>, and you can keep clicking to add multiple points before pressing Cancel to stop. <i>Peak Threshold</i> (20–90%) sets how faint a spot can be and still count; dragging it live-reruns <i>Find Peaks</i>. <i>Peak Marker Size</i> is purely visual (mm, <code>0</code> = hidden) and doesn't affect detection.</li>
+              <li><b>Search tab.</b> <i>Search Orientation</i> enables once an image is loaded with center, scale, and at least 4 peaks. The first search after loading an image (or changing lattice/Bravais type) takes a few seconds to build an internal reflection library; later searches reuse it. Click a row in the results to select it — this sets the Base Orientation <em>and</em> unlocks the Orient tab.</li>
+              <li><b>Orient tab (optional).</b> Only usable after selecting a solution. Enter a target <code>(h,k,l)</code> and click <i>Calculate Goniometer Angles</i> to preview the X/Y/Z needed to align that plane's normal with the detector normal. Click <b>Set Orientation</b> to actually apply those angles to the System tab's goniometer.</li>
+              <li><b>Report.</b> The printer icon (top right, next to the theme toggle and help button) saves a PDF with parameters, the peak table, the best solution's matches, and a summary of all solutions.</li>
             </ol>
         </section>
+
 
         <section id="ui-reference">
             <h2>UI reference (tabs)</h2>
 
-            <h3>Set</h3>
+            <h3>System</h3>
             <ul>
-              <li><b>Lattice & parameters.</b> Bravais choice enables the right fields (e.g., only <code>a</code> for cubic; <code>a,c</code> for tetragonal; monoclinic fixes α=γ=90°, etc.).</li>
               <li><b>X-ray Source (Laue).</b> <code>λ_min</code>–<code>λ_max</code> (Å) define the polychromatic band.</li>
               <li><b>Detector Geometry.</b> <code>Angle (°)</code> defines the detector plane's orientation relative to the beam (0° is transmission, 180° is back-scattering). <code>Dist. (mm)</code> is the distance from the sample to the detector plane's center.</li>
-              <li><b>Goniometer Rotation (°).</b> X/Y/Z act relative to the chosen Base Orientation; dragging the canvas adjusts Y/Z.</li>
+              <li><b>Goniometer Angles (°).</b> X/Y/Z act relative to the chosen Base Orientation; dragging the canvas adjusts Y/Z. The <b>Reset</b> button zeros all three.</li>
             </ul>
 
-            <h3>Analysis</h3>
+            <h3>Sample</h3>
             <ul>
-              <li><b>Set Center</b> → <b>Set Scale.</b> After center, enter a second point’s real coordinates (U, V) to establish px→mm.</li>
-              <li><b>Experimental Peaks.</b> Automatic finder prefers bright, well-separated spots; manual picks allow precise control. Edit (U, V) values inline; click a row label to select and drag on the image.</li>
+              <li><b>Lattice & parameters.</b> Bravais choice enables the right fields (e.g., only <code>a</code> for cubic; <code>a,c</code> for tetragonal; monoclinic fixes α=γ=90°, etc.).</li>
+              <li><b>Calc. Spot Size.</b> Physical size (mm) of the simulated (yellow) overlay spots. <code>0</code> hides them.</li>
             </ul>
 
-            <h3>Solutions</h3>
+            <h3>Measure</h3>
             <ul>
-              <li>Rows show <b>Score</b> (lower is better), <b>Matches</b>, <b>RMS (mm)</b>, and <b>Rot (X,Y,Z)</b>. Multiple nearly identical rows are symmetry-equivalent orientations—choose the best group’s top row.</li>
+              <li><b>Load Image.</b> The loaded file's name is shown below the button. Loading a different file resets center, scale, peaks, solutions, and the Orient tab.</li>
+              <li><b>Set Center</b> → <b>Set Scale.</b> After center, enter a second point's real coordinates (U, V) to establish px→mm.</li>
+              <li><b>Experimental Peaks.</b> <i>Find Peaks</i> runs automatic detection at the current threshold. <i>+ Add Peaks…</i> enters a continuous placement mode (crosshair cursor); the same button becomes <b>Cancel</b> to exit it. Rows can be edited inline (the edited point highlights red on the image) or dragged directly.</li>
+              <li><b>Peak Threshold (20–90%).</b> How faint (as a fraction of the frame's brightest pixel) a spot can be and still be detected. Changing it live-reruns Find Peaks if an image, center, and scale are already set.</li>
+              <li><b>Peak Marker Size.</b> Purely visual (mm, <code>0</code> = hidden); doesn't affect click/drag hit-testing, which stays reliable regardless of this setting.</li>
+            </ul>
+
+            <h3>Search</h3>
+            <ul>
+              <li><b>Search Orientation</b> is enabled only once an image is loaded with a valid center, scale, and at least 4 peaks; a hint below the button explains what's still missing.</li>
+              <li>Results list the 20 best solutions: <b>Score</b> (lower is better) and <b>Rot (X,Y,Z)</b>. Clicking a row selects it — this sets the Base Orientation and unlocks the <em>Orient</em> tab. Multiple rows with the same score at genuinely different angles are symmetry-equivalent orientations (see <a href="#search-algorithm">Search Algorithm</a>), not duplicates.</li>
             </ul>
 
             <h3>Orient</h3>
             <ul>
-              <li>Computes goniometer angles to <strong>geometrically align</strong> the chosen (h,k,l) <strong>plane normal</strong> (its reciprocal vector <code><b>g</b></code>) to be parallel with the <strong>detector's normal vector</strong>.
-              <br>• This calculation is dynamic: it reads the <b>Detector Angle</b> from the 'Set' tab and uses its normal as the alignment target.
-              <br>• <strong>Note:</strong> This is a purely geometric alignment. A diffraction spot will generally <em>not</em> appear at the center, as this function no longer solves for the Bragg condition.
-              <br>• This calculation is valid for all angles from 0° (aligns <code><b>g</b></code> with the beam) to 180° (aligns <code><b>g</b></code> anti-parallel to the beam).</li>
+              <li>Disabled until a solution has been selected in the <em>Search</em> tab.</li>
+              <li><b>Calculate Goniometer Angles</b> computes the X/Y/Z needed to <strong>geometrically align</strong> the chosen (h,k,l) <strong>plane normal</strong> (its reciprocal vector <code><b>g</b></code>) parallel with the <strong>detector's normal vector</strong>, and shows them in the read-only fields. It does <em>not</em> move the goniometer.
+              <br>• The target uses the current <b>Detector Angle</b> from the System tab as its alignment reference, and is valid across the full 0°–180° range.</li>
+              <li><b>Set Orientation</b> applies the calculated angles to the System tab's goniometer. Nothing moves until you press this.</li>
+              <li><b>Note:</b> This is a purely geometric alignment — a diffraction spot will generally <em>not</em> appear at the detector center, since this doesn't solve for the Bragg condition.</li>
             </ul>
         </section>
+
 
         <section id="math-model">
             <h2>Mathematical model</h2>
@@ -268,44 +285,47 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
         </section>
 
         <section id="search-algorithm">
-            <h2>Orientation search (what “Search Orientation” does)</h2>
+            <h2>Orientation search (what "Search Orientation" does)</h2>
+            <p>The search uses a Hough-transform-style voting scheme: it looks for a single rotation that explains <em>many</em> picked peaks simultaneously, rather than trusting any one pair of spots.</p>
             <ol>
-              <li><b>Gather</b> experimental peaks ... </li>
-              <li><b>Build HKL library</b> ... </li>
-              <li><b>Angle pairing</b>: ... </li>
-              <li><b>Candidate orientation</b>: ... </li>
-              <li><b>Score it</b>: ... </li>
-              <li><b>Keep top-N</b> ... </li>
+              <li><b>Build a direction library (cached).</b> Every <code>(h,k,l)</code> with indices up to <code>±8</code> — filtered by the Bravais systematic-absence rule — is converted to a unit reciprocal-space direction. Building and sorting this library is the slow part, so it's cached and only rebuilt when the lattice or Bravais type changes. Expect the <em>first</em> search after loading an image (or changing the lattice) to take a few seconds; later searches reuse the cache and are much faster.</li>
+              <li><b>Reconstruct experimental directions.</b> Each picked peak's detector position is converted to a scattering-vector <em>direction</em> <code>ĝ_exp</code> — direction only, since the specific wavelength that produced any given spot isn't known (see §5 of the <a href="#math-model">Mathematical Model</a>).</li>
+              <li><b>Vote.</b> A handful of peaks are tried in turn as a "reference" spot. For each candidate library direction as that spot's hypothesized <code>(h,k,l)</code>, the exact rotation angle that would align every <em>other</em> picked peak to some library direction is computed directly from geometry (a closed-form calculation, not a scan). Hypotheses where enough <em>distinct</em> peaks agree on the same angle become candidate orientations.</li>
+              <li><b>Refine.</b> Each candidate is polished ICP-style: simulate the full pattern, match it against all picked peaks, refit the rotation using <em>every</em> matched pair (not just the original two), and repeat until it converges.</li>
+              <li><b>Score, deduplicate, and rank.</b> Refined candidates are scored by RMS position error and fraction of peaks matched. Solutions within about 3° of an already-kept, better-scoring one are dropped as near-duplicates. The top 20 survivors are listed.</li>
             </ol>
 
-            <p>
-              <strong>Note on high-index reflections:</strong> The search uses two different (h,k,l) ranges.
-              <ul>
-                <li><b>Seeding (Step 2-3):</b> A small library (e.g., |h,k,l| ≤ 2) is used to quickly find <i>pairs</i> of angles that match your experimental data.</li>
-                <li><b>Scoring (Step 5):</b> A large library (e.g., |h,k,l| ≤ 12) is used to generate a <i>full</i> simulation pattern to score the candidate orientation.</li>
-              </ul>
-              This means a high-index experimental spot (like a (3,1,0)) will not help <i>seed</i> the search, but it <b>will</b> be correctly identified and used to <i>confirm</i> and <i>score</i> a good solution. The search only requires at least one <i>pair</i> of your experimental spots to fall within the small "seeding" range.
-            </p>
-            <p>This strategy is robust to small peak sets and naturally yields symmetry-related orientations (e.g., cubic equivalences).</p>
+            <blockquote>
+                <strong>Why not just check every pair of low-index reflections?</strong>
+                <p>An earlier version of this tool did exactly that — seeding candidates from pairs of low-index reflections (<code>|h,k,l| ≤ 2</code>) ranked by "simplicity." It worked for generic orientations but failed for patterns near a symmetric zone axis: thousands of spurious low-index pairs coincidentally matched the observed angles and crowded out the true match, which was often higher-index. Requiring several spots to agree on the <em>same</em> rotation, rather than trusting a single coincidental pair, is what fixes this.</p>
+            </blockquote>
+
+            <p><b>Symmetry-equivalent solutions are expected.</b> A cubic lattice has 24 proper rotations indistinguishable from diffraction data alone. Near a symmetric zone axis, several top solutions may carry the identical score at genuinely different Euler angles (often ~90°, ~120°, or ~180° apart) — that reflects real crystal symmetry, not a bug. Only near-duplicates (within ~3°) are merged.</p>
+
+            <p><b>Peak count matters.</b> At least 4 peaks are required to enable a search, but the vote is far more reliable with 8–20, spread across different quadrants of the pattern rather than clustered together.</p>
         </section>
+
 
         <section id="peak-finding">
             <h2>Peak finder details</h2>
             <ul>
-              <li>Grayscale image; optional inversion. Threshold at ~90% of the frame’s max intensity.</li>
-              <li>Local-max test in a small neighborhood; exclude a central disk (~5 mm radius).</li>
-              <li>Balanced selection: take strongest candidates per quadrant to seed indexing.</li>
-              <li>You can always refine by manual adding/dragging spots.</li>
+              <li>Grayscale image; optional inversion. Threshold is set by the <b>Peak Threshold</b> slider (20–90% of the frame's max intensity) in the Measure tab — lower it to catch fainter spots, raise it to ignore noise.</li>
+              <li>Local-max test in a small neighborhood; excludes a central disk (~5 mm radius) around the beam center.</li>
+              <li>Balanced selection across quadrants, generously capped (well above what the threshold will realistically return) so the threshold — not a hidden count limit — is what actually controls how many peaks you get.</li>
+              <li>Changing the threshold live-reruns detection once an image, center, and scale exist.</li>
+              <li>You can always refine by manually adding, editing, or dragging spots. <b>Peak Marker Size</b> controls their on-screen size only (mm, <code>0</code> hides them) and never affects detection or clickability.</li>
             </ul>
         </section>
 
+
         <section id="report-contents">
             <h2>Report contents</h2>
+            <p>Click the printer icon (top right) to generate the report.</p>
             <ol>
               <li>Detector snapshot with overlays.</li>
               <li>Simulation + analysis parameters (lattice, λ band, D, Angle, center/scale).</li>
               <li>Experimental peak list in (U, V) mm (+ raw pixels).</li>
-              <li><b>Best solution details</b>: each peak’s assigned <code>(h,k,l)</code>, simulated (U, V) and error (mm).</li>
+              <li><b>Best solution details</b>: each peak's assigned <code>(h,k,l)</code>, simulated (U, V) and error (mm).</li>
               <li>All solutions summary.</li>
             </ol>
         </section>
@@ -315,16 +335,24 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
             
             <h3>No or poor solutions</h3>
             <ul>
-              <li>Verify Bravais type and lattice parameters.</li>
-              <li>Check detector <b>Distance</b> and <b>Angle</b> (e.g., 0° for transmission, 180° for back-scatter).</li>
-              <li>Re-do center/scale carefully; a wrong scale ruins geometry.</li>
-              <li>Use clear, well-separated peaks (3+ across different quadrants). Try <i>Invert Image</i> if the finder misses peaks.</li>
+              <li>Verify Bravais type and lattice parameters (Sample tab).</li>
+              <li>Check detector <b>Distance</b> and <b>Angle</b> in the System tab (e.g., 0° for transmission, 180° for back-scatter).</li>
+              <li>Re-do center/scale carefully in the Measure tab; a wrong scale ruins the geometry.</li>
+              <li>Use at least 4 peaks — ideally 8–20, spread across quadrants rather than clustered. Try <i>Invert Image</i> or lowering the <b>Peak Threshold</b> if the finder misses faint spots.</li>
+              <li>Search Orientation stays disabled until an image, center, scale, and ≥4 peaks are all in place — the hint text under the button in the Search tab says exactly what's still missing.</li>
+              <li>If several top solutions show the <em>same score</em> at different angles, that's expected symmetry degeneracy (see <a href="#search-algorithm">Search Algorithm</a>), not an error — pick any of the tied top group.</li>
             </ul>
             
-            <h3>A spot <em>doesn't</em> appear after “Orient to (h,k,l)”</h3>
+            <h3>Clicking "Calculate Goniometer Angles" doesn't move anything</h3>
             <ul>
-              <li><b>This is the expected behavior.</b> The 'Orient' function now performs a purely <strong>geometric alignment</strong>, making the (h,k,l) plane normal parallel to the detector normal. It <em>no longer</em> calculates the angles required for a <strong>diffraction spot</strong> (the Bragg condition).</li>
-              <li>A spot will only appear at the center if this geometric alignment also happens to satisfy the Bragg condition for a wavelength in your source's range (which is only guaranteed at 180°).</li>
+              <li><b>This is intentional.</b> Calculating only fills in the read-only X/Y/Z preview fields. The goniometer itself is only updated when you press <b>Set Orientation</b> right below it.</li>
+              <li>The Orient tab is disabled entirely until you've selected a solution in the Search tab — there's no "current orientation" to rotate from otherwise.</li>
+            </ul>
+
+            <h3>A spot <em>doesn't</em> appear after orienting to (h,k,l)</h3>
+            <ul>
+              <li><b>This is expected behavior.</b> Orienting performs a purely <strong>geometric alignment</strong>, making the (h,k,l) plane normal parallel to the detector normal. It does <em>not</em> solve for the Bragg condition of an actual diffraction spot.</li>
+              <li>A spot will only appear at the center if this geometric alignment also happens to satisfy the Bragg condition for a wavelength within your source's <code>λ_min</code>–<code>λ_max</code> range (guaranteed only at 180°).</li>
             </ul>
         </section>
 
@@ -332,13 +360,16 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
             <h2>Conventions & hints</h2>
             <ul>
               <li><b>Coordinate System:</b> The incident beam is along the <b>+X</b> axis. The lab's vertical direction is <b>+Z</b> (mapping to the detector's +V coordinate). The detector plane's position is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
-              <li>In the detector's (U, V) coordinate system in mm (handled by the scale).</li>
-              <li>The (U, V) coordinates can be manually edited (so it is the scale).</li>
-              <li>Dragging the canvas rotates Y/Z goniometer axes; use sliders for precise values.</li>
+              <li>Peak and scale-point coordinates are in the detector's (U, V) system, in mm, established by <b>Set Scale</b>.</li>
+              <li>(U, V) values can be edited directly in the Measure tab's peak list.</li>
+              <li>Dragging the canvas rotates Y/Z goniometer axes; use the sliders in the System tab for precise values.</li>
               <li>Use a realistic λ band (e.g., 0.2–3.0 Å) and a correct D to reduce false solutions.</li>
+              <li>The cursor changes with mode: a crosshair while adding peaks, a wait cursor while a search or report is running.</li>
+              <li>The left panel is resizable — drag its right edge — and its width adapts if you resize the browser window.</li>
+              <li>Dark/light theme is a per-browser preference (saved locally) via the toggle icon at top right, next to the report and help icons.</li>
             </ul>
             <div class="footer">
-                <p>Help Guide updated on 02 Nov 2025 by an AI assistant.</p>
+                <p>Help Guide updated 25 Aug 2026 by an AI assistant.</p>
             </div>
         </section>
 
