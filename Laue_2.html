@@ -676,7 +676,7 @@
                             <label for="scalePointX_mm">U (mm)</label>
                             <input type="number" id="scalePointX_mm" value="50" step="1" class="form-input">
                             <label for="scalePointY_mm">V (mm)</label>
-                            <input type="number" id="scalePointY_mm" value="0" step="1" class="form-input">
+                            <input type="number" id="scalePointY_mm" value="50" step="1" class="form-input">
                         </div>
                     </div>
 
@@ -692,6 +692,11 @@
                         <div class="form-input-grid mt-4">
                             <label for="peakThreshold" class="span-2" style="margin-bottom: 0;">Peak Threshold: <span id="peakThresholdValue">80</span>%</label>
                             <input type="range" id="peakThreshold_slider" value="80" min="20" max="90" step="1" class="form-slider span-2">
+                        </div>
+
+                        <div class="form-input-grid mt-4">
+                            <label for="peakWidth" class="span-2" style="margin-bottom: 0;">Peak Window Size: <span id="peakWidthValue">5</span> px</label>
+                            <input type="range" id="peakWidth_slider" value="5" min="3" max="25" step="2" class="form-slider span-2">
                         </div>
 
                         <div class="form-input-grid mt-4">
@@ -1233,7 +1238,7 @@
                 const exclusion_radius_mm_sq = 5**2; // 5mm exclusion radius
                 const peaks = [];
                 
-                const neighborhood = 5; 
+                const neighborhood = parseInt(document.getElementById('peakWidth_slider').value); 
                 const n_half = Math.floor(neighborhood / 2);
 
                 for (let y = n_half; y < height - n_half; y++) {
@@ -1251,7 +1256,12 @@
                         for (let dy = -n_half; dy <= n_half; dy++) {
                             for (let dx = -n_half; dx <= n_half; dx++) {
                                 if (dx === 0 && dy === 0) continue;
-                                if (grayscale[(y + dy) * width + (x + dx)] >= intensity) {
+                                const neighborIntensity = grayscale[(y + dy) * width + (x + dx)];
+                                // Accept flat tops by checking scanning order, reject strict greater
+                                if (neighborIntensity > intensity) {
+                                    isMax = false;
+                                    break;
+                                } else if (neighborIntensity === intensity && (dy < 0 || (dy === 0 && dx < 0))) {
                                     isMax = false;
                                     break;
                                 }
@@ -1270,7 +1280,7 @@
                 const quadrants = { q1: [], q2: [], q3: [], q4: [] };
                 const centerX = imageCenter.raw_x;
                 const centerY = imageCenter.raw_y;
-                const MAX_PEAKS_PER_QUADRANT = 50; // threshold is the real limiter now, not this cap
+                const MAX_PEAKS_PER_QUADRANT = 40; // threshold is the real limiter now, not this cap
                 const perQuadrant = MAX_PEAKS_PER_QUADRANT;
 
                 for (const peak of peaks) {
@@ -2049,7 +2059,8 @@
                         // Store the matrix elements — this is the source of truth for re-application.
                         matrixElements: rotMatrix.elements.slice(),
                         score: score, matches: matches,
-                        rmsError: rmsError, coverage: coverage
+                        rmsError: rmsError, coverage: coverage,
+                        simSpots: simSpots // Save pattern for degeneracy clustering
                     });
                 }
             }
@@ -2062,13 +2073,34 @@
             // orientation. Keep only the best-scoring representative of each cluster so
             // the list shows distinct orientations rather than near-duplicates.
             const MIN_DISTINCT_ANGLE_DEG = 3.0;
+            const PATTERN_TOLERANCE_MM = 2.0; 
             const diverseSolutions = [];
             for (const sol of solutions) {
-                const isDuplicate = diverseSolutions.some(existing =>
-                    misorientationDeg(existing.matrixElements, sol.matrixElements) < MIN_DISTINCT_ANGLE_DEG
-                );
+                const isDuplicate = diverseSolutions.some(existing => {
+                    // 1. Check for nearly identical rotation matrices
+                    if (misorientationDeg(existing.matrixElements, sol.matrixElements) < MIN_DISTINCT_ANGLE_DEG) return true;
+                    
+                    // 2. Check for physical pattern equivalence (degeneracy like in Cubic systems)
+                    if (!sol.simSpots || !existing.simSpots) return false;
+                    
+                    // Quick length check to avoid heavy loop if they are clearly different
+                    if (Math.abs(sol.simSpots.length - existing.simSpots.length) > Math.max(sol.simSpots.length, existing.simSpots.length) * 0.1) return false;
+                    
+                    let patternMatches = 0;
+                    for (const a of sol.simSpots) {
+                        for (const b of existing.simSpots) {
+                            if ((a.x_2d - b.x_2d)**2 + (a.y_2d - b.y_2d)**2 < PATTERN_TOLERANCE_MM*PATTERN_TOLERANCE_MM) {
+                                patternMatches++;
+                                break;
+                            }
+                        }
+                    }
+                    // If 90% of the spots overlap, they represent the same physical pattern
+                    return (patternMatches / sol.simSpots.length) > 0.90;
+                });
+                
                 if (!isDuplicate) diverseSolutions.push(sol);
-                if (diverseSolutions.length >= 20) break;
+                if (diverseSolutions.length >= 10) break;
             }
             orientationSolutions = diverseSolutions;
             
@@ -3363,6 +3395,12 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             document.getElementById('peakThreshold_slider').addEventListener('change', () => {
                 // Re-running Find Peaks live when the threshold changes only makes sense
                 // once there's actually something to detect against.
+                if (experimentalImage && imageCenter && pixels_per_mm_x > 0) detectPeaks();
+            });
+            document.getElementById('peakWidth_slider').addEventListener('input', (e) => {
+                document.getElementById('peakWidthValue').textContent = e.target.value;
+            });
+            document.getElementById('peakWidth_slider').addEventListener('change', () => {
                 if (experimentalImage && imageCenter && pixels_per_mm_x > 0) detectPeaks();
             });
             document.getElementById('resetGonioBtn').addEventListener('click', resetGoniometer);

@@ -187,7 +187,7 @@
             <h3>Search</h3>
             <ul>
               <li><b>Search Orientation</b> is enabled only once an image is loaded with a valid center, scale, and at least 4 peaks; a hint below the button explains what's still missing.</li>
-              <li>Results list the 20 best solutions: <b>Score</b> (lower is better) and <b>Rot (X,Y,Z)</b>. Clicking a row selects it — this sets the Base Orientation and unlocks the <em>Orient</em> tab. Multiple rows with the same score at genuinely different angles are symmetry-equivalent orientations (see <a href="#search-algorithm">Search Algorithm</a>), not duplicates.</li>
+              <li>Results list up to 10 unique solution clusters: <b>Score</b> (lower is better) and <b>Rot (X,Y,Z)</b>. Clicking a row selects it — this sets the Base Orientation and unlocks the <em>Orient</em> tab. Symmetry-equivalent orientations are automatically merged into single clusters (see <a href="#search-algorithm">Search Algorithm</a>).</li>
             </ul>
 
             <h3>Orient</h3>
@@ -231,7 +231,7 @@ V = a b c √(1 − cos²α − cos²β − cos²γ + 2 cosα cosβ cosγ)
             </table>
 
             <h3>3) Orientation stacking</h3>
-            <p>Reflections are rotated first by the <b>Base Orientation</b> <code>U</code> (from the solver), then by the goniometer Euler rotation <code>R(X,Y,Z)</code>:</p>
+            <p>Reflections are rotated first by the <b>Base Orientation</b> <code>U</code> (from the solver), then by the goniometer Euler rotation <code>R(X,Y,Z)</code>. The goniometer rotations are mathematically applied in the sequence: first around <b>X</b>, then around <b>Y</b>, and finally around <b>Z</b>.</p>
 <pre><code><b>g</b> = R(X,Y,Z) · U · <b>g</b>₀
 </code></pre>
 
@@ -292,7 +292,7 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
               <li><b>Reconstruct experimental directions.</b> Each picked peak's detector position is converted to a scattering-vector <em>direction</em> <code>ĝ_exp</code> — direction only, since the specific wavelength that produced any given spot isn't known (see §5 of the <a href="#math-model">Mathematical Model</a>).</li>
               <li><b>Vote.</b> A handful of peaks are tried in turn as a "reference" spot. For each candidate library direction as that spot's hypothesized <code>(h,k,l)</code>, the exact rotation angle that would align every <em>other</em> picked peak to some library direction is computed directly from geometry (a closed-form calculation, not a scan). Hypotheses where enough <em>distinct</em> peaks agree on the same angle become candidate orientations.</li>
               <li><b>Refine.</b> Each candidate is polished ICP-style: simulate the full pattern, match it against all picked peaks, refit the rotation using <em>every</em> matched pair (not just the original two), and repeat until it converges.</li>
-              <li><b>Score, deduplicate, and rank.</b> Refined candidates are scored by RMS position error and fraction of peaks matched. Solutions within about 3° of an already-kept, better-scoring one are dropped as near-duplicates. The top 20 survivors are listed.</li>
+              <li><b>Score, cluster, and rank.</b> Refined candidates are scored by RMS position error and fraction of peaks matched. The algorithm then clusters solutions by comparing their simulated diffraction patterns. Solutions that produce identical spot patterns (e.g., due to symmetry) or are within ~3° of an already-kept solution are merged into a single cluster. The top 10 unique clusters are listed.</li>
             </ol>
 
             <blockquote>
@@ -300,7 +300,7 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
                 <p>An earlier version of this tool did exactly that — seeding candidates from pairs of low-index reflections (<code>|h,k,l| ≤ 2</code>) ranked by "simplicity." It worked for generic orientations but failed for patterns near a symmetric zone axis: thousands of spurious low-index pairs coincidentally matched the observed angles and crowded out the true match, which was often higher-index. Requiring several spots to agree on the <em>same</em> rotation, rather than trusting a single coincidental pair, is what fixes this.</p>
             </blockquote>
 
-            <p><b>Symmetry-equivalent solutions are expected.</b> A cubic lattice has 24 proper rotations indistinguishable from diffraction data alone. Near a symmetric zone axis, several top solutions may carry the identical score at genuinely different Euler angles (often ~90°, ~120°, or ~180° apart) — that reflects real crystal symmetry, not a bug. Only near-duplicates (within ~3°) are merged.</p>
+            <p><b>Symmetry-equivalent solutions are clustered.</b> A cubic lattice has 24 proper rotations indistinguishable from diffraction data alone. Because the algorithm compares the simulated spot patterns of candidate solutions, it recognizes when different Euler angles produce the same physical pattern on the detector and compacts these degenerate solutions into a single cluster.</p>
 
             <p><b>Peak count matters.</b> At least 4 peaks are required to enable a search, but the vote is far more reliable with 8–20, spread across different quadrants of the pattern rather than clustered together.</p>
         </section>
@@ -340,7 +340,7 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
               <li>Re-do center/scale carefully in the Measure tab; a wrong scale ruins the geometry.</li>
               <li>Use at least 4 peaks — ideally 8–20, spread across quadrants rather than clustered. Try <i>Invert Image</i> or lowering the <b>Peak Threshold</b> if the finder misses faint spots.</li>
               <li>Search Orientation stays disabled until an image, center, scale, and ≥4 peaks are all in place — the hint text under the button in the Search tab says exactly what's still missing.</li>
-              <li>If several top solutions show the <em>same score</em> at different angles, that's expected symmetry degeneracy (see <a href="#search-algorithm">Search Algorithm</a>), not an error — pick any of the tied top group.</li>
+              <li>Symmetry-equivalent solutions (e.g., cubic degeneracies) are automatically clustered based on their spot patterns (see <a href="#search-algorithm">Search Algorithm</a>). If you still see multiple distinct solutions with similar scores, they represent genuinely different diffraction patterns.</li>
             </ul>
             
             <h3>Clicking "Calculate Goniometer Angles" doesn't move anything</h3>
@@ -359,7 +359,9 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
         <section id="conventions">
             <h2>Conventions & hints</h2>
             <ul>
-              <li><b>Coordinate System:</b> The incident beam is along the <b>+X</b> axis. The lab's vertical direction is <b>+Z</b> (mapping to the detector's +V coordinate). The detector plane's position is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
+              <li><b>Coordinate System:</b> The incident beam is along the <b>+X</b> axis. The lab's vertical direction is <b>+Z</b> (mapping to the detector's +V coordinate). To form a right-handed system, <b>+Y</b> points to the left when looking along the beam (+X). The detector plane's position is defined by its <b>Angle</b> (0° = transmission, plane at <code>x = +D</code>; 90° = side, plane at <code>y = +D</code>; 180° = back-scatter, plane at <code>x = -D</code>).</li>
+              <li><b>Rotation Convention (Right-Hand Screw Rule):</b> Positive rotation angles follow a standard right-handed screw. If you look down an axis (from the origin toward the positive direction), a positive (+) rotation turns <strong>clockwise</strong> (driving the screw forward).</li>
+              <li><b>Rotation Sequence:</b> Goniometer angles are applied mathematically in the order: <b>X</b>, then <b>Y</b>, then <b>Z</b>.</li>
               <li>Peak and scale-point coordinates are in the detector's (U, V) system, in mm, established by <b>Set Scale</b>.</li>
               <li>(U, V) values can be edited directly in the Measure tab's peak list.</li>
               <li>Dragging the canvas rotates Y/Z goniometer axes; use the sliders in the System tab for precise values.</li>
@@ -369,7 +371,7 @@ pixels_per_mm_y = −(y_px − y0_px) / V_mm   // minus because image Y is down
               <li>Dark/light theme is a per-browser preference (saved locally) via the toggle icon at top right, next to the report and help icons.</li>
             </ul>
             <div class="footer">
-                <p>Help Guide updated 25 Aug 2026 by an AI assistant.</p>
+                <p>Help Guide updated 1 Sep 2026 by an AI assistant.</p>
             </div>
         </section>
 
