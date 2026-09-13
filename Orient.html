@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Orient-a-Laue Simulator &amp; Indexer</title>
+    <title>Orient — Laue Diagram Simulator &amp; Indexer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="./dist/output.css" rel="stylesheet">
@@ -526,32 +526,12 @@
             color: var(--text-light) !important;
         }
 
+ html[data-theme="light"] #setCenterBtn:not(:disabled),
+html[data-theme="light"] #addPeakBtn:not(:disabled) {
+    border: 1px solid var(--primary-accent);
+    box-sizing: border-box;
+}
 
-        /* ------------------------------------------------------------------
-           Fallback for the few Tailwind utilities this page uses, so the app
-           still lays out correctly if ./dist/output.css is missing. A real
-           Tailwind build, when present, simply overrides these.
-           ------------------------------------------------------------------ */
-        .flex { display: flex; }
-        .grid { display: grid; }
-        .grid-cols-\[1fr\,65px\] { grid-template-columns: 1fr 65px; }
-        .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
-        .gap-2 { gap: 0.5rem; }
-        .mr-2 { margin-right: 0.5rem; }
-        .mb-2 { margin-bottom: 0.5rem; }
-        .mb-3 { margin-bottom: 0.75rem; }
-        .mt-2 { margin-top: 0.5rem; }
-        .mt-3 { margin-top: 0.75rem; }
-        .mt-4 { margin-top: 1rem; }
-        .h-6 { min-height: 1.5rem; }
-        .h-10 { min-height: 2.5rem; }
-        .text-sm { font-size: 0.82rem; }
-        .font-bold { font-weight: 700; }
-        .font-normal { font-weight: 400; }
-        .text-gray-400, .text-gray-600, .text-gray-700 { color: var(--text-dark); }
-        .text-green-700 { color: var(--phosphor); }
-        .cursor-pointer { cursor: pointer; }
     </style>
 
 </head>
@@ -569,7 +549,7 @@
                     </svg>
                 </div>
                 <div id="appHeaderText">
-                    <div id="appHeaderTitle">Orient</div>
+                    <div id="appHeaderTitle">OrientaL</div>
                     <div id="appHeaderSubtitle">Orient-a-Laue</div>
                 </div>
             </div>
@@ -2848,20 +2828,31 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
         detectorCtx.stroke();
     }
 
-    // Determine pixel/mm scale (needed before drawing markers, since sizes are now in physical mm)
+    // Determine pixel/mm scale (needed before drawing markers, since sizes are now in physical mm).
+    //
+    // IMPORTANT: pixels_per_mm_x/y are RAW IMAGE pixels per mm, but everything drawn on
+    // this canvas is in CANVAS pixels. Positions go through imageTransform.scale below;
+    // any LENGTH expressed in mm has to go through it too, or it comes out too big by
+    // 1 / imageTransform.scale.
     const scale_valid = pixels_per_mm_x > 0 && pixels_per_mm_y > 0;
-    let draw_scale_x, draw_scale_y;
+    let draw_scale_x, draw_scale_y;   // raw image px per mm
+    let rawToCanvas;                  // raw image px -> canvas px
     if (scale_valid) {
         draw_scale_x = pixels_per_mm_x; // U-scale
         draw_scale_y = pixels_per_mm_y; // V-scale
+        rawToCanvas = imageTransform.scale;
     } else {
-
+        // Uncalibrated preview: work directly in canvas pixels.
         const default_mm_view_width = 100.0;
         const guess_scale = w / default_mm_view_width;
         draw_scale_x = guess_scale; 
         draw_scale_y = guess_scale;
+        rawToCanvas = 1;
     }
-    const mmScaleAvg = (draw_scale_x + draw_scale_y) / 2;
+    // Canvas pixels per mm — the scale to use for any on-screen length.
+    const canvasPerMmX = draw_scale_x * rawToCanvas;
+    const canvasPerMmY = draw_scale_y * rawToCanvas;
+    const mmScaleAvg = (canvasPerMmX + canvasPerMmY) / 2;
 
     // Draw experimental spots (plain circles, no index numbers — size 0 hides them)
     if (experimentalSpots.length > 0 && peakMarkerSizeMm > 0) {
@@ -2887,7 +2878,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
             const isHighlighted = (highlightedSpot === spot); 
             let canvasX, canvasY;
 
-            if (imageCenter) {
+            if (imageCenter && scale_valid) {
                 const spot_raw_x = imageCenter.raw_x + (spot.x_2d * draw_scale_x); // u -> raw_x
                 const spot_raw_y = imageCenter.raw_y - (spot.y_2d * draw_scale_y); // v -> raw_y
                 canvasX = spot_raw_x * imageTransform.scale + imageTransform.offsetX;
@@ -2910,34 +2901,60 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
         });
     }
 
-    // Draw scale bar
-    const scaleBar_mm = 20;
-    const avg_scale = (draw_scale_x + draw_scale_y) / 2.0;
-    const scaleBar_px = scaleBar_mm * avg_scale;
-    
-    if (scaleBar_px > 10 && scaleBar_px < w * 0.8) {
-        const y_pos = h - 30;
-        const startX = (w / 2) - (scaleBar_px / 2);
-        const endX = (w / 2) + (scaleBar_px / 2);
-        
-        const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
-        const scaleBarColor = isLightTheme ? '#1a2130' : '#ffffff';
-        detectorCtx.strokeStyle = scaleBarColor;
-        detectorCtx.fillStyle = scaleBarColor;
-        detectorCtx.lineWidth = 2;
-        detectorCtx.font = '14px Arial';
-        detectorCtx.textAlign = 'center';
-        detectorCtx.beginPath();
-        detectorCtx.moveTo(startX, y_pos);
-        detectorCtx.lineTo(endX, y_pos);
-        detectorCtx.moveTo(startX, y_pos - 5);
-        detectorCtx.lineTo(startX, y_pos + 5);
-        detectorCtx.moveTo(endX, y_pos - 5);
-        detectorCtx.lineTo(endX, y_pos + 5);
-        detectorCtx.stroke();
-        
-        detectorCtx.textBaseline = 'bottom'; 
-        detectorCtx.fillText('2 cm', w / 2, y_pos - 8);
+    // Draw scale bar. A horizontal bar measures U, so use the U scale, not an average
+    // of U and V (they differ whenever the image pixels are not square).
+    if (canvasPerMmX > 0 && isFinite(canvasPerMmX)) {
+        // Pick a round length that lands near a fifth of the view, so the bar stays
+        // useful at any zoom instead of silently disappearing when it falls out of range.
+        const targetPx = w * 0.2;
+        const NICE_MM = [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500];
+        let scaleBar_mm = NICE_MM[0];
+        for (const candidate of NICE_MM) {
+            if (Math.abs(candidate * canvasPerMmX - targetPx) < Math.abs(scaleBar_mm * canvasPerMmX - targetPx)) {
+                scaleBar_mm = candidate;
+            }
+        }
+        const scaleBar_px = scaleBar_mm * canvasPerMmX;
+        const label = scaleBar_mm >= 10 ? `${scaleBar_mm / 10} cm` : `${scaleBar_mm} mm`;
+
+        if (scaleBar_px > 10 && scaleBar_px < w * 0.9) {
+            const y_pos = h - 30;
+            const startX = (w / 2) - (scaleBar_px / 2);
+            const endX = (w / 2) + (scaleBar_px / 2);
+
+            const barPath = () => {
+                detectorCtx.beginPath();
+                detectorCtx.moveTo(startX, y_pos);
+                detectorCtx.lineTo(endX, y_pos);
+                detectorCtx.moveTo(startX, y_pos - 5);
+                detectorCtx.lineTo(startX, y_pos + 5);
+                detectorCtx.moveTo(endX, y_pos - 5);
+                detectorCtx.lineTo(endX, y_pos + 5);
+            };
+
+            detectorCtx.font = '14px Arial';
+            detectorCtx.textAlign = 'center';
+            detectorCtx.textBaseline = 'bottom';
+            detectorCtx.lineJoin = 'round';
+
+            // Dark halo first. The bar is drawn over the film, whose brightness is
+            // independent of the UI theme, so a theme-derived colour is not reliable.
+            detectorCtx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+            detectorCtx.lineWidth = 5;
+            barPath();
+            detectorCtx.stroke();
+            detectorCtx.strokeText(label, w / 2, y_pos - 8);
+
+            // Light bar on top.
+            detectorCtx.strokeStyle = '#ffffff';
+            detectorCtx.lineWidth = 2;
+            barPath();
+            detectorCtx.stroke();
+            detectorCtx.fillStyle = '#ffffff';
+            detectorCtx.fillText(label, w / 2, y_pos - 8);
+
+            detectorCtx.lineJoin = 'miter';
+        }
     }
 }
 
@@ -2978,7 +2995,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
     for (const spot of detectorSpots) {
         let spot_canvas_x, spot_canvas_y;
         
-        if (imageCenter) {
+        if (imageCenter && scale_valid) {
             const spot_raw_x = imageCenter.raw_x + (spot.x_2d * draw_scale_x);
             const spot_raw_y = imageCenter.raw_y - (spot.y_2d * draw_scale_y);
             spot_canvas_x = spot_raw_x * imageTransform.scale + imageTransform.offsetX;
