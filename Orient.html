@@ -526,10 +526,19 @@
             color: var(--text-light) !important;
         }
 
- html[data-theme="light"] #setCenterBtn:not(:disabled),
-html[data-theme="light"] #addPeakBtn:not(:disabled) {
+/* Light mode: --light-bg is #ffffff, the same colour as the --card-bg panel behind
+   these buttons, so secondary buttons read as flat. Outline them once enabled. */
+html[data-theme="light"] .btn-secondary:not(:disabled) {
     border: 1px solid var(--primary-accent);
     box-sizing: border-box;
+}
+
+/* .btn-secondary:hover hard-codes #4a5568, a dark slate chosen for the dark palette.
+   In light mode that sits under --text-light (#131a24) — 2.3:1 contrast, close to
+   unreadable. Keep the hover light and let the border carry the state change. */
+html[data-theme="light"] .btn-secondary:hover:not(:disabled) {
+    background-color: #eaf1fd;
+    border-color: var(--primary-accent-hover);
 }
 
     </style>
