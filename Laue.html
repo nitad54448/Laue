@@ -1,710 +1,1071 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Laue Diagram Simulator</title>
+    <title>Laue diffraction</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow: hidden; display: flex; height: 100vh; }
-        #appContainer { display: flex; flex-direction: row; width: 100%; height: 100%; }
+        #appContainer { display: flex; width: 100%; height: 100%; }
         #controlsPanel {
-            width: 350px;
-            flex-shrink: 0;
-            padding: 10px;
-            background-color: #f7f7ff;
-            overflow-y: auto;
-            height: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
+            width: 380px; padding: 10px; background-color: #f7f7ff; overflow-y: auto; height: 100%;
+            box-sizing: border-box; display: flex; flex-direction: column; flex-shrink: 0;
         }
         #resizer {
-            width: 5px;
-            cursor: col-resize;
-            background-color: #e0e0e0;
-            flex-shrink: 0;
-            border-left: 1px solid #ccc;
-            border-right: 1px solid #ccc;
+            width: 5px; cursor: col-resize; background-color: #2a3b74; flex-shrink: 0; touch-action: none;
+            border-left: 1px solid #fcfcfc; border-right: 1px solid #ccc;
         }
-        #controlsContent {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-        #mainView {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: row;
-            width: 100%;
-        }
-        #visualizationContainer { display: none; }
-        #detectorContainer {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            border-left: none;
-            box-sizing: border-box;
-            cursor: default;
-        }
-        #detectorCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1a1a2a;
-        }
+        #controlsContent { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
+        #visualizationContainer { flex-grow: 1; position: relative; min-width: 0; }
+        h1 { font-size: 1.15em; margin: 0 0 6px 0; color: #2a3b74; }
+        .intro { font-size: 0.85em; color: #445; line-height: 1.45; margin: 0; }
         label, input, select, button { font-size: 0.9em; }
-        input[type=number] { width: 100%; padding: 6px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; text-align: center;}
-        input[type=radio] { vertical-align: middle; }
-        input[type=range] { width: 100%; vertical-align: middle; }
-        select { padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; background-color: white;}
-        button { background-color: #e7e7e7; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
-        button:hover { background-color: #d7d7d7; }
-        .info-section { margin-bottom: 12px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
-        .block-label {display: block; margin-bottom: 10px; font-weight: 600; color: #333;}
+        input[type=number] { width: 100%; padding: 6px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        input[type=range] { vertical-align: middle; width: 100%; }
+        select { padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; background-color: white; }
+        button { padding: 6px 8px; border: 1px solid #2a3b74; border-radius: 4px; background: #fff; color: #2a3b74; cursor: pointer; }
+        button:hover { background: #e8ecfa; }
+        button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #2a3b74; outline-offset: 1px; }
+        .info-section { margin-bottom: 12px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .block-label { display: block; margin-bottom: 10px; font-weight: 600; color: #333; }
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 15px; align-items: center; }
+        .grid-3 { grid-template-columns: auto 1fr auto; }
         .grid-span-2 { grid-column: span 2; }
-        .grid-container label { text-align: left; font-weight: 500;}
-        .grid-container span { text-align: right; font-weight: 500; color: #333; padding-right: 5px;}
-        #hklInfo { font-size: 0.9em; line-height: 1.5; font-weight:bold; margin-top:10px; height:auto; min-height:40px; background-color: #e8f0fe; padding: 8px; border-radius: 4px; border: 1px solid #cce;}
+        .grid-span-all { grid-column: 1 / -1; }
+        .grid-container label { text-align: left; font-weight: 500; }
+        .value { text-align: right; min-width: 52px; font-variant-numeric: tabular-nums; color: #333; }
+        .hint { font-size: 0.8em; color: #667; line-height: 1.4; margin-top: 8px; }
+        .check-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+        .button-row { display: flex; gap: 8px; margin-top: 10px; }
+        .button-row button { flex: 1; }
+        #status { display: none; font-size: 0.85em; color: #a01818; background: #fdecec; border: 1px solid #f2b8b8; border-radius: 4px; padding: 8px; margin-bottom: 12px; }
+        #hklInfo { font-size: 0.9em; line-height: 1.5; font-weight: bold; white-space: pre-line; min-height: 40px; background-color: #e8f0fe; padding: 8px; border-radius: 4px; border: 1px solid #cce; }
         .footer-attribution { margin-top: auto; padding-top: 10px; font-size: 0.8em; text-align: center; color: #aaa; }
+        #inset {
+            position: absolute; top: 10px; right: 10px; width: 320px; height: 320px; z-index: 2;
+            background: #05060c; border: 1px solid #556; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        #insetCanvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+        #insetHandle {
+            position: absolute; left: -1px; bottom: -1px; width: 16px; height: 16px; cursor: nesw-resize; z-index: 3; touch-action: none;
+            background: linear-gradient(45deg, #8899cc 0 2px, transparent 2px 5px, #8899cc 5px 7px, transparent 7px 10px, #8899cc 10px 12px, transparent 12px);
+            border-bottom-left-radius: 4px;
+        }
+        .label { color: #ffffff; font-family: sans-serif; padding: 2px 4px; font-size: 0.9em; background: rgba(0,0,0,0.6); border-radius: 3px; }
     </style>
 </head>
 <body>
     <div id="appContainer">
         <div id="controlsPanel">
             <div id="controlsContent">
-                
+                <div class="info-section">
+                    <h1>Laue method</h1>
+                    <p class="intro">Polychromatic ("white") beam and a stationary single crystal. Many wavelengths diffract at once, so a full spot pattern appears without rotating the crystal. Spots lying on the same curve (ellipse or hyperbola) belong to the same zone.</p>
+                </div>
+                <div id="status" role="alert"></div>
+
                 <div class="info-section grid-container">
-                    <label for="crystalSystem" class="grid-span-2">Crystal System</label>
+                    <label for="crystalSystem" class="grid-span-2">Crystal system</label>
                     <select id="crystalSystem" class="grid-span-2">
-                        <option value="cubic" selected>Cubic</option>
+                        <option value="cubic">Cubic</option>
                         <option value="tetragonal">Tetragonal</option>
-                        <option value="orthorhombic">Orthorhombic</option>
+                        <option value="orthorhombic" selected>Orthorhombic</option>
                         <option value="hexagonal">Hexagonal</option>
                         <option value="trigonal">Trigonal</option>
-                        <option value="monoclinic">Monoclinic</option>
+                        <option value="monoclinic">Monoclinic (unique axis b)</option>
                         <option value="triclinic">Triclinic</option>
                     </select>
-                    <label for="bravaisLattice" class="grid-span-2">Bravais Lattice</label>
+                    <label for="bravaisLattice" class="grid-span-2">Bravais lattice</label>
                     <select id="bravaisLattice" class="grid-span-2"></select>
                 </div>
 
                 <div class="info-section">
-                    <span class="block-label">Lattice Parameters</span>
-                    <div id="latticeParamsContainer" class="grid-container">
-                        <div id="row_a" class="grid-span-2" style="display: contents;"> <label for="a">a (Å)</label> <input type="number" id="a" value="6.0" step="0.1" min="1"> </div>
-                        <div id="row_b" class="grid-span-2" style="display: contents;"> <label for="b">b (Å)</label> <input type="number" id="b" value="7.0" step="0.1" min="1"> </div>
-                        <div id="row_c" class="grid-span-2" style="display: contents;"> <label for="c">c (Å)</label> <input type="number" id="c" value="8.0" step="0.1" min="1"> </div>
-                        <div id="row_alpha" class="grid-span-2" style="display: contents;"> <label for="alpha">α (°)</label> <input type="number" id="alpha" value="90.0" step="0.1"> </div>
-                        <div id="row_beta" class="grid-span-2" style="display: contents;"> <label for="beta">β (°)</label> <input type="number" id="beta" value="90.0" step="0.1"> </div>
-                        <div id="row_gamma" class="grid-span-2" style="display: contents;"> <label for="gamma">γ (°)</label> <input type="number" id="gamma" value="90.0" step="0.1"> </div>
-                    </div>
-                </div>
-                                
-                <div class="info-section" id="hklInfo">Spots outside the detector area (dashed circle) are shown faded.</div>
-
-                <div id="singleCrystalControls">
-                    <div id="rotationControls" class="info-section">
-                        <span class="block-label">Crystal Rotation (°)</span>
-                         <div class="grid-container" style="grid-template-columns: auto 1fr 60px;">
-                            <label for="rotX">X (beam):</label>
-                            <input type="range" id="rotX_slider" value="0" min="-90" max="90" step="1">
-                            <input type="number" id="rotX" value="0" min="-90" max="90" step="1">
-                            
-                            <label for="rotY">Y (horiz):</label>
-                            <input type="range" id="rotY_slider" value="0" min="-90" max="90" step="1">
-                            <input type="number" id="rotY" value="0" min="-90" max="90" step="1">
-
-                            <label for="rotZ">Z (vert):</label>
-                            <input type="range" id="rotZ_slider" value="0" min="-90" max="90" step="1">
-                            <input type="number" id="rotZ" value="0" min="-90" max="90" step="1">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="info-section">
-                    <span class="block-label">X-Ray Source (Laue)</span>
-                    <div id="lambdaControls" class="grid-container" style="grid-template-columns: auto 1fr 65px;">
-                        <label for="lambda_min">λ_min (Å)</label>
-                        <input type="range" id="lambda_min_slider" value="0.2" min="0.1" max="2.0" step="0.1">
-                        <input type="number" id="lambda_min" value="0.2" min="0.1" max="2.0" step="0.1">
-                        
-                        <label for="lambda_max">λ_max (Å)</label>
-                        <input type="range" id="lambda_max_slider" value="2.0" min="0.2" max="5.0" step="0.1">
-                        <input type="number" id="lambda_max" value="2.0" min="0.2" max="5.0" step="0.1">
-                    </div>
-                </div>
-
-                <div class="info-section">
-                    <span class="block-label">Detector Geometry</span>
+                    <span class="block-label">Lattice parameters</span>
                     <div class="grid-container">
-                        <label for="detectorPosition">Position</label>
-                        <select id="detectorPosition" class="grid-span-2">
-                            <option value="back" selected>Back-scattering</option>
-                            <option value="transmission">Transmission</option>
-                        </select>
-                        <label for="detectorDistance" class="grid-span-2">Distance (mm)</label>
-                        <div class="grid-span-2" style="display: grid; grid-template-columns: 1fr 65px; gap: 10px; align-items: center;">
-                           <input type="range" id="detectorDistance_slider" value="50" min="5" max="200" step="1">
-                           <input type="number" id="detectorDistance" value="50" min="5" max="200" step="1">
-                        </div>
-                        
-                        <label for="detectorDiameter" class="grid-span-2" style="margin-top: 10px;">Diameter (mm)</label>
-                        <div class="grid-span-2" style="display: grid; grid-template-columns: 1fr 65px; gap: 10px; align-items: center;">
-                           <input type="range" id="detectorDiameter_slider" value="150" min="50" max="250" step="10">
-                           <input type="number" id="detectorDiameter" value="150" min="50" max="250" step="10">
-                        </div>
+                        <div id="row_a" style="display: contents;"><label for="a">a (Å)</label><input type="number" id="a" value="4.0" step="0.1" min="1"></div>
+                        <div id="row_b" style="display: contents;"><label for="b">b (Å)</label><input type="number" id="b" value="5.0" step="0.1" min="1"></div>
+                        <div id="row_c" style="display: contents;"><label for="c">c (Å)</label><input type="number" id="c" value="6.0" step="0.1" min="1"></div>
+                        <div id="row_alpha" style="display: contents;"><label for="alpha">α (°)</label><input type="number" id="alpha" value="90.0" step="0.1" min="1" max="179"></div>
+                        <div id="row_beta" style="display: contents;"><label for="beta">β (°)</label><input type="number" id="beta" value="90.0" step="0.1" min="1" max="179"></div>
+                        <div id="row_gamma" style="display: contents;"><label for="gamma">γ (°)</label><input type="number" id="gamma" value="90.0" step="0.1" min="1" max="179"></div>
                     </div>
                 </div>
 
                 <div class="info-section">
-                    <span class="block-label">Range (h, k, l)</span>
-                     <div class="grid-container" style="grid-template-columns: auto 1fr 1fr;">
-                        <label for="h_min">h</label> <input type="number" id="h_min" value="-10" step="1"> <input type="number" id="h_max" value="10" step="1">
-                        <label for="k_min">k</label> <input type="number" id="k_min" value="-10" step="1"> <input type="number" id="k_max" value="10" step="1">
-                        <label for="l_min">l</label> <input type="number" id="l_min" value="-10" step="1"> <input type="number" id="l_max" value="10" step="1">
+                    <span class="block-label">Range (h, k, l): min, max</span>
+                    <div class="grid-container" style="grid-template-columns: auto 1fr 1fr;">
+                        <label for="h_min">h</label><input type="number" id="h_min" value="-3" step="1"><input type="number" id="h_max" value="3" step="1" aria-label="h max">
+                        <label for="k_min">k</label><input type="number" id="k_min" value="-3" step="1"><input type="number" id="k_max" value="3" step="1" aria-label="k max">
+                        <label for="l_min">l</label><input type="number" id="l_min" value="-3" step="1"><input type="number" id="l_max" value="3" step="1" aria-label="l max">
                     </div>
+                    <div class="hint">Only lattice-centring extinctions are applied (no glide planes or screw axes).</div>
                 </div>
 
+                <div class="info-section">
+                    <span class="block-label">Polychromatic beam</span>
+                    <div class="grid-container grid-3">
+                        <label for="lambda_min">λ min (Å)</label>
+                        <input type="number" id="lambda_min" value="0.5" step="0.05" min="0.1" class="grid-span-2">
+                        <label for="lambda_max">λ max (Å)</label>
+                        <input type="number" id="lambda_max" value="2.0" step="0.05" min="0.1" class="grid-span-2">
+                        <label for="disorder">B (Å²)</label>
+                        <input type="range" id="disorder" value="0" min="0" max="20" step="0.5">
+                        <span id="disorderValue" class="value">0.0</span>
+                    </div>
+                    <div class="hint">Every wavelength between λmin and λmax is present, so every Ewald sphere between the large one (1/λmin, blue) and the small one (1/λmax, red) exists at once. A point g diffracts if the wavelength it needs, λ = −2g<sub>z</sub>/|g|², lies in the band. Spot colour shows that wavelength.</div>
+                </div>
+
+                <div class="info-section">
+                    <span class="block-label">Crystal orientation (stationary)</span>
+                    <div class="grid-container grid-3">
+                        <label for="phi" title="Rotation about the crystal mount axis (vertical when χ = 0)">φ</label>
+                        <input type="range" id="phi" value="0" min="-180" max="180" step="0.1">
+                        <span id="phiValue" class="value">0.0°</span>
+                        <label for="chi" title="Tilt of the φ axis; the χ axis is along the beam when ω = 0">χ</label>
+                        <input type="range" id="chi" value="0" min="-180" max="180" step="0.1">
+                        <span id="chiValue" class="value">0.0°</span>
+                        <label for="omega" title="Rotation about the vertical axis, perpendicular to the beam">ω</label>
+                        <input type="range" id="omega" value="0" min="-180" max="180" step="0.1">
+                        <span id="omegaValue" class="value">0.0°</span>
+                    </div>
+                    <div class="hint">The crystal does not move during a Laue exposure. At φ = χ = ω = 0, c* is parallel to the beam; use the sliders to set a fixed tilt.</div>
+                    <div class="button-row"><button type="button" id="resetAngles">Reset angles (c* ∥ beam)</button></div>
+                </div>
+
+                <div class="info-section">
+                    <span class="block-label">Display</span>
+                    <div class="check-row"><input type="checkbox" id="showOnlyDiffracting"><label for="showOnlyDiffracting">Show only diffracting points</label></div>
+                    <div class="check-row"><input type="checkbox" id="showRays" checked><label for="showRays">Diffracted beams</label></div>
+                    <div class="check-row"><input type="checkbox" id="showLimiting"><label for="showLimiting">Limiting sphere</label></div>
+                    <div class="check-row"><input type="checkbox" id="showRealAxes"><label for="showRealAxes">Real axes a, b, c (directions)</label></div>
+                    <div class="button-row"><button type="button" id="resetView">Reset view</button></div>
+                </div>
+
+                <div class="info-section">
+                    <span class="block-label">Detector</span>
+                    <div class="grid-container">
+                        <label for="detDist">Distance (mm)</label>
+                        <input type="number" id="detDist" value="50" step="5" min="10" max="1000">
+                        <label for="detWidth">Width (mm)</label>
+                        <input type="number" id="detWidth" value="250" step="10" min="10" max="2000">
+                        <label for="detArm">Angle 2θ<sub>D</sub> (°)</label>
+                        <input type="number" id="detArm" value="0" step="5" min="-180" max="180">
+                    </div>
+                    <div class="button-row">
+                        <button type="button" data-arm="0">Transmission</button>
+                        <button type="button" data-arm="180">Back-reflection</button>
+                    </div>
+                    <div class="check-row" style="margin-top: 10px;"><input type="checkbox" id="show3DDet" checked><label for="show3DDet">Show detector in 3D</label></div>
+                    <div class="check-row"><input type="checkbox" id="showInset" checked><label for="showInset">Detector image (inset)</label></div>
+                    <div class="hint">Set the detector angle: 0° gives a transmission Laue photograph, 180° a back-reflection photograph (the beam passes through a hole in the detector); any angle in between is possible. In 3D the crystal sits at the centre of the 1/λmin sphere: the faint lines are the diffracted beams from the crystal to the detector, while the coloured vectors k_out start at the centre of their own Ewald sphere. Click a spot in the inset to select it; drag the inset's lower-left corner to resize it.</div>
+
+                    <span class="block-label" style="margin-top: 14px;">Integration</span>
+                    <div class="check-row"><input type="checkbox" id="integrate"><label for="integrate"><b>Integrate</b> (accumulate spots on the detector)</label></div>
+                    <div class="grid-container" style="margin-top: 6px;">
+                        <label for="integTime">Stop after (s), 0 = never</label>
+                        <input type="number" id="integTime" value="0" step="1" min="0" max="3600">
+                    </div>
+                    <div class="button-row"><button type="button" id="clearBtn">Clear detector</button></div>
+                    <div class="hint">The crystal is stationary, so integrating records the same pattern; change the orientation (φ, χ, ω) while integrating to superimpose the patterns of several orientations. Recorded spots stay on the detector when you move it; a new wavelength or a new lattice clears them.</div>
+                </div>
+
+                <div class="info-section" id="hklInfo" aria-live="polite">Click a reciprocal lattice point.</div>
             </div>
-            <div class="footer-attribution">
-                NitaD, Univ Paris-Saclay, 2 Juin 2025
-            </div>
+            <div class="footer-attribution">NitaD, Univ Paris-Saclay</div>
         </div>
-        <div id="resizer"></div>
-        <div id="mainView">
-            <div id="visualizationContainer"></div>
-            <div id="detectorContainer">
-                <canvas id="detectorCanvas"></canvas>
+        <div id="resizer" role="separator" aria-orientation="vertical"></div>
+        <div id="visualizationContainer">
+            <div id="inset">
+                <canvas id="insetCanvas"></canvas>
+                <div id="insetHandle" title="Drag to resize"></div>
             </div>
         </div>
     </div>
-        
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script>
-        // --- Global Variables ---
-        const mainGroup = new THREE.Group();
-        let reciprocalMatrix = new THREE.Matrix3();
-        let hklInfoDiv;
-        
-        // --- Detector Variables ---
-        let detectorCanvas, detectorCtx, detectorContainer;
-        let detectorSpots = [];
-        let isPanning = false; // This variable will now mean "is rotating"
-        let isDragging = false;
-        let mouseDownPosition = new THREE.Vector2(0, 0);
-        let lastTouchDistance = 0;
-        let lastTouchCenter = null;
-        let highlightedSpot = null;
 
-        const bravaisOptions = { 'triclinic':['P'], 'monoclinic':['P','C'], 'orthorhombic':['P','C','I','F'], 'tetragonal':['P','I'], 'trigonal':['R'], 'hexagonal':['P'], 'cubic':['P','I','F'] };
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
 
-        function init() {
-            hklInfoDiv = document.getElementById('hklInfo');
-            detectorContainer = document.getElementById('detectorContainer');
-            detectorCanvas = document.getElementById('detectorCanvas');
-            detectorCtx = detectorCanvas.getContext('2d');
-            
-            setupEventListeners();
-            initResizer();
-            handleCrystalSystemChange(); 
-            onWindowResize();
-            requestAnimationFrame(animate); 
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ---------- Constants ----------
+        const MAX_HKL_COMBINATIONS = 10000;
+        const BG = 0x1a1a2a;
+        const COLOR_BG = new THREE.Color(BG);
+        const COLOR_NORMAL = new THREE.Color(0x4fa3ff);
+        const COLOR_DIFF = new THREE.Color(0xff3333);
+        const COLOR_LIVE = new THREE.Color(0x33e0ff);
+        const COLOR_ACCUM = new THREE.Color(0xffe178);
+        const AXIS_COLORS = { a: 0xff5555, b: 0x55dd55, c: 0x6a5cff };
+        const PICK_RADIUS_PX = 12;
+        const SCENE_PER_MM = 0.015;      // 3D detector scale: 100 mm is drawn as 1.5/λ
+
+        // Monoclinic (unique axis b): C is standard; A and I are alternative settings.
+        const BRAVAIS = {
+            triclinic: ['P'], monoclinic: ['P', 'C', 'A', 'I'], orthorhombic: ['P', 'A', 'B', 'C', 'I', 'F'],
+            tetragonal: ['P', 'I'], trigonal: ['P', 'R', 'Rrh'], hexagonal: ['P'], cubic: ['P', 'I', 'F']
+        };
+        const BRAVAIS_NAMES = {
+            P: 'Primitive (P)', A: 'A-base centred (A)', B: 'B-base centred (B)', C: 'C-base centred (C)',
+            I: 'Body centred (I)', F: 'Face centred (F)',
+            R: 'Rhombohedral, hexagonal axes (R)', Rrh: 'Rhombohedral, rhombohedral axes (R)'
+        };
+
+        const $ = id => document.getElementById(id);
+        const deg = THREE.MathUtils.degToRad, rad2deg = THREE.MathUtils.radToDeg;
+        const css = hex => `#${hex.toString(16).padStart(6, '0')}`;
+
+        // ---------- Scene and state ----------
+        let scene, camera, renderer, labelRenderer, controls, container;
+        const latticeGroup = new THREE.Group();   // reciprocal lattice (crystal frame)
+        const labGroup = new THREE.Group();       // lab frame: Ewald sphere(s), beam, detector
+        let koutLines, extLines;
+        const clock = new THREE.Clock();
+
+        const state = {
+            items: [], worldPos: [], visible: [],
+            maxG: 1, pointRadius: 0.01, pointMesh: null, marker: null,
+            R: 1 / 1.54, ewaldCenter: new THREE.Vector3(0, 0, -1 / 1.54),
+            det: null, selected: null, selectedKey: null,
+            nShown: 0, nDiff: 0, live: [],
+            errors: { lattice: '', lab: '' },
+            insetWidth: 320,
+            exposure: { active: false, elapsed: 0, T: 0, spots: new Map(), dirty: false },
+            keepExposure: false   // set before a rebuild that should not erase the detector
+        };
+
+        const _m4 = new THREE.Matrix4(), _m4b = new THREE.Matrix4(), _m4c = new THREE.Matrix4();
+        const _m3 = new THREE.Matrix3();
+        const _color = new THREE.Color();
+        const _u = new THREE.Vector3(), _P = new THREE.Vector3(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
+        const _Y = new THREE.Vector3(0, 1, 0), _Z = new THREE.Vector3(0, 0, 1);
+        const _hit = { x: 0, y: 0, t: 0 };
+
+        // ================= Laue method =================
+        const METHOD_LATTICE_IDS = ['showRealAxes'];
+        const METHOD_BEAM_IDS = ['lambda_min', 'lambda_max'];
+        const CONVENTION = () => 'cstar';   // c* ∥ beam at zero angles
+        const POINT_SCALE = 0.06, SHOW_RECIPROCAL_AXES = true, INSET_RATIO = 1, K0_LABEL = 'k₀ (λmin)';
+        Object.assign(state, { lmin: 0.5, lmax: 2.0 });
+
+        // Goniometer: R = Ω(y)·Χ(z)·Φ(y). Beam along +z, ω axis vertical (y).
+        function goniometerMatrix(target) {
+            const phi = deg(Number($('phi').value) || 0), chi = deg(Number($('chi').value) || 0), omega = deg(Number($('omega').value) || 0);
+            return target.makeRotationY(omega).multiply(_m4b.makeRotationZ(chi)).multiply(_m4c.makeRotationY(phi));
         }
 
-        function initResizer() {
-            const resizer = document.getElementById('resizer');
-            const panel = document.getElementById('controlsPanel');
-            let startX, startWidth;
-            resizer.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-                startX = e.clientX;
-                startWidth = parseInt(document.defaultView.getComputedStyle(panel).width, 10);
-                window.addEventListener('mousemove', handleMouseMove);
-                window.addEventListener('mouseup', handleMouseUp);
+        function showAngles() {
+            ['phi', 'chi', 'omega'].forEach(id => { $(id + 'Value').textContent = `${Number($(id).value).toFixed(1)}°`; });
+        }
+
+
+        function methodInit() {
+            $('resetAngles').addEventListener('click', () => {
+                ['phi', 'chi', 'omega'].forEach(id => { $(id).value = 0; });
+                updateDiffraction();
             });
-            function handleMouseMove(e) {
-                const dx = e.clientX - startX;
-                panel.style.width = (startWidth + dx) + 'px';
-                onWindowResize();
+        }
+        function onMethodInput() { updateDiffraction(); }
+        function makeItems(base) { return base; }
+
+        function readBeam() {
+            const lmin = Number($('lambda_min').value), lmax = Number($('lambda_max').value);
+            if (!Number.isFinite(lmin) || !Number.isFinite(lmax) || lmin < 0.1) throw new Error('λ min must be at least 0.1 Å.');
+            if (lmax <= lmin) throw new Error('λ max must be larger than λ min.');
+            state.lmin = lmin; state.lmax = lmax;
+            state.R = 1 / lmin;   // reference sphere: the largest one
+        }
+
+        function addSpheres() {
+            addSphere(1 / state.lmin, 0x3366ff, 0.18);
+            addSphere(1 / state.lmax, 0xff4444, 0.22);
+            labGroup.add(makeLabel(`1/λmin  (λ = ${state.lmin} Å)`, new THREE.Vector3(0, 1 / state.lmin, -1 / state.lmin), '#88aaff'));
+            labGroup.add(makeLabel(`1/λmax  (λ = ${state.lmax} Å)`, new THREE.Vector3(0, 1 / state.lmax, -1 / state.lmax), '#ff8888'));
+        }
+        function addLabExtras() {}
+        function onLatticeChanged() {}
+        function onDetectorRebuilt() {}
+        function onIntegrateChange() {}
+        const recordedColor = (sp, c) => c.copy(sp.color).multiplyScalar(0.4 + 0.6 * sp.w);
+        const recordedRGB = sp => `${sp.color.r * 255 | 0}, ${sp.color.g * 255 | 0}, ${sp.color.b * 255 | 0}`;
+        function tick() {}
+
+        // Spot colour from the diffracting wavelength (blue = λmin, red = λmax).
+        function laueColor(lam, target) {
+            const f = Math.min(Math.max((lam - state.lmin) / (state.lmax - state.lmin), 0), 1);
+            return target.setHSL((1 - f) * 0.66, 1, 0.55);
+        }
+
+        function updateDiffraction() {
+            if (!state.pointMesh || !state.det) return;
+            showAngles();
+            $('disorderValue').textContent = Number($('disorder').value).toFixed(1);
+            const rot4 = goniometerMatrix(_m4);
+            latticeGroup.quaternion.setFromRotationMatrix(rot4);
+            const rot3 = _m3.setFromMatrix4(rot4);
+            const B = Number($('disorder').value) || 0;
+            const onlyDiff = $('showOnlyDiffracting').checked, showRays = $('showRays').checked, mesh = state.pointMesh;
+            const kout = [], koutCol = [];
+            let n = 0, nDiff = 0;
+            state.visible.length = 0;
+            state.live.length = 0;
+
+            state.items.forEach((p, i) => {
+                const w = state.worldPos[i].copy(p.pos).applyMatrix3(rot3);
+                p.I = Math.exp(-B * p.g * p.g / 2);
+                // |g + k0| = k0 with k0 = ẑ/λ  ⇒  λ = −2 g_z / |g|²  (only possible for g_z < 0)
+                p.lam = w.z < -1e-12 ? -2 * w.z / (p.g * p.g) : null;
+                p.diff = p.lam !== null && p.lam >= state.lmin && p.lam <= state.lmax;
+                let col = null;
+                if (p.diff) {
+                    nDiff++;
+                    col = laueColor(p.lam, new THREE.Color());
+                    const Rp = 1 / p.lam;
+                    _u.set(w.x, w.y, w.z + Rp).normalize();       // k_out = g + k0(λ)
+                    const spot = { ux: _u.x, uy: _u.y, uz: _u.z, ang: 0, w: p.I, key: p.key, color: col };
+                    state.live.push(spot);
+                    if (state.exposure.active) recordSpot({ ...spot });
+                    if (showRays && !(onlyDiff && !p.diff)) {
+                        kout.push(0, 0, -Rp, w.x, w.y, w.z);       // from that wavelength's sphere centre
+                        koutCol.push(col.r, col.g, col.b, col.r, col.g, col.b);
+                    }
+                }
+                if (onlyDiff && !p.diff) return;
+                p.scale = 1;
+                mesh.setMatrixAt(n, _m4b.makeTranslation(p.pos.x, p.pos.y, p.pos.z));
+                mesh.setColorAt(n, _color.copy(COLOR_BG).lerp(p.diff ? col : COLOR_NORMAL, 0.2 + 0.8 * p.I));
+                state.visible.push(i);
+                n++;
+            });
+            // 3D detector: spots, and diffracted beams from the crystal (centre of the 1/λmin sphere).
+            const det = state.det, ext = [], C = state.ewaldCenter;
+            if (det.show3D) {
+                fillDetectorMesh(det.spotMesh, state.live, (sp, c) => c.copy(sp.color).multiplyScalar(0.5 + 0.5 * sp.w));
+                if (showRays) for (const sp of state.live) {
+                    if (!placeSpot(sp)) continue;
+                    detTo3D(_pl.x, _pl.y, _P);
+                    ext.push(C.x, C.y, C.z, _P.x, _P.y, _P.z);
+                }
             }
-            function handleMouseUp() {
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mouseup', handleMouseUp);
+            finishPointMesh(n, nDiff, kout, koutCol, ext);
+        }
+
+
+        function drawInsetSpots(ctx) {
+            let nOn = 0;
+            for (const sp of state.live) {
+                if (!placeSpot(sp)) continue;
+                nOn++;
+                fillSpot(ctx, sp, `${sp.color.r * 255 | 0}, ${sp.color.g * 255 | 0}, ${sp.color.b * 255 | 0}`, 0.5 + 0.5 * sp.w);
             }
+            return `Laue pattern: ${nOn} spots on detector`;
+        }
+
+        // Wavelength colour scale under the detector frame.
+        function drawInsetExtras(ctx, W) {
+            const x0 = W - 128, y0 = 24, w = 110;
+            for (let i = 0; i < w; i++) {
+                laueColor(state.lmin + (state.lmax - state.lmin) * i / (w - 1), _color);
+                ctx.fillStyle = `rgb(${_color.r * 255 | 0}, ${_color.g * 255 | 0}, ${_color.b * 255 | 0})`;
+                ctx.fillRect(x0 + i, y0, 1, 6);
+            }
+            ctx.fillStyle = '#aab';
+            ctx.fillText(`${state.lmin} Å`, x0, y0 + 18);
+            ctx.fillText(`${state.lmax} Å`, x0 + w - 30, y0 + 18);
+        }
+
+        function selectionDetails(p) {
+            let txt = `(${p.h} ${p.k} ${p.l})   d = ${(1 / p.g).toFixed(4)} Å\n`;
+            if (p.lam == null) return txt + 'Cannot diffract in this orientation (g_z ≥ 0).';
+            const tth = 2 * rad2deg(Math.asin(Math.min(1, p.g * p.lam / 2)));
+            return txt + `Needs λ = ${p.lam.toFixed(3)} Å, 2θ = ${tth.toFixed(2)}°: ${p.diff ? 'diffracting' : 'outside [λmin, λmax]'}`;
+        }
+
+        function init() {
+            container = $('visualizationContainer');
+            scene = new THREE.Scene();
+            scene.background = COLOR_BG.clone();
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / Math.max(container.clientHeight, 1), 0.01, 100);
+            camera.position.set(1.5, 1.5, 3.0);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(container.clientWidth, container.clientHeight);
+            Object.assign(labelRenderer.domElement.style, { position: 'absolute', top: '0px', pointerEvents: 'none' });
+            container.appendChild(labelRenderer.domElement);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+            const dl = new THREE.DirectionalLight(0xffffff, 2.0);
+            dl.position.set(5, 10, 7.5);
+            scene.add(dl);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+
+            koutLines = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff, vertexColors: true }));
+            extLines = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x00ddcc, transparent: true, opacity: 0.35 }));
+            koutLines.frustumCulled = extLines.frustumCulled = false;
+            scene.add(latticeGroup, labGroup, koutLines, extLines);
+
+            setupEventListeners();
+            initResizer();
+            initInset();
+            populateBravais();
+            updateParamRows();
+            setInsetSize(state.insetWidth);
+            methodInit();
+            rebuildLattice();
+            fitCamera();
+            animate();
+        }
+
+        // ---------- UI ----------
+        function setError(key, msg) {
+            state.errors[key] = msg;
+            const text = Object.values(state.errors).filter(Boolean).join(' ');
+            $('status').textContent = text;
+            $('status').style.display = text ? 'block' : 'none';
+        }
+
+        function populateBravais() {
+            const system = $('crystalSystem').value, sel = $('bravaisLattice'), current = sel.value;
+            sel.innerHTML = '';
+            BRAVAIS[system].forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt; o.textContent = BRAVAIS_NAMES[opt];
+                sel.appendChild(o);
+            });
+            if (BRAVAIS[system].includes(current)) sel.value = current;
+        }
+
+        function visibleRows(system, bravais) {
+            if (system === 'trigonal') return bravais === 'Rrh' ? ['a', 'alpha'] : ['a', 'c'];
+            return {
+                triclinic: ['a', 'b', 'c', 'alpha', 'beta', 'gamma'], monoclinic: ['a', 'b', 'c', 'beta'],
+                orthorhombic: ['a', 'b', 'c'], tetragonal: ['a', 'c'], hexagonal: ['a', 'c'], cubic: ['a']
+            }[system];
+        }
+
+        function updateParamRows() {
+            const rows = visibleRows($('crystalSystem').value, $('bravaisLattice').value);
+            ['a', 'b', 'c', 'alpha', 'beta', 'gamma'].forEach(p => { $(`row_${p}`).style.display = rows.includes(p) ? 'contents' : 'none'; });
         }
 
         function setupEventListeners() {
+            const LATTICE = new Set(['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'h_min', 'h_max', 'k_min', 'k_max', 'l_min', 'l_max', ...METHOD_LATTICE_IDS]);
+            const LAB = new Set(['detDist', 'detWidth', 'detArm', 'show3DDet', 'showLimiting', ...METHOD_BEAM_IDS]);
             document.querySelectorAll('#controlsContent input, #controlsContent select').forEach(el => {
-                // This generic listener will handle all inputs that don't have specific sync logic
-                el.addEventListener(el.tagName.toLowerCase() === 'select' ? 'change' : 'input', () => {
-                    if (el.id === 'crystalSystem') {
-                        handleCrystalSystemChange(); // This calls updateVisualization itself
-                    } else {
-                        updateVisualization();
-                    }
-                });
-            });
-
-            // --- Lattice Parameter Validation ---
-            ['a', 'b', 'c'].forEach(param => {
-                const inputElement = document.getElementById(param);
-                if (inputElement) {
-                    inputElement.addEventListener('change', (event) => {
-                        const minValue = parseFloat(event.target.min) || 0.1;
-                        let value = parseFloat(event.target.value);
-                        if (isNaN(value) || value < minValue) {
-                            event.target.value = minValue;
-                            updateVisualization();
-                        }
-                    });
-                }
-            });
-
-            // --- Rotation Controls Synchronization ---
-            ['X', 'Y', 'Z'].forEach(ax => {
-                const slider = document.getElementById(`rot${ax}_slider`);
-                const numberInput = document.getElementById(`rot${ax}`);
-
-                slider.addEventListener('input', () => {
-                    numberInput.value = slider.value;
-                    updateVisualization();
-                });
-                numberInput.addEventListener('input', () => {
-                    slider.value = numberInput.value;
-                    updateVisualization();
-                });
-                numberInput.addEventListener('change', () => { // Clamp value on blur/enter
-                    let val = parseFloat(numberInput.value);
-                    const min = parseFloat(slider.min);
-                    const max = parseFloat(slider.max);
-                    if (isNaN(val) || val < min) { numberInput.value = min; }
-                    if (val > max) { numberInput.value = max; }
-                    slider.value = numberInput.value;
-                    updateVisualization();
-                });
-            });
-            
-            // --- Lambda Controls Synchronization ---
-            const lambdaMinSlider = document.getElementById('lambda_min_slider');
-            const lambdaMaxSlider = document.getElementById('lambda_max_slider');
-            const lambdaMinInput = document.getElementById('lambda_min');
-            const lambdaMaxInput = document.getElementById('lambda_max');
-
-            function updateLambdaControls(source) {
-                let minVal, maxVal;
-
-                if (source === 'min_slider') {
-                    minVal = parseFloat(lambdaMinSlider.value);
-                    lambdaMinInput.value = minVal.toFixed(1);
-                } else if (source === 'min_input') {
-                    minVal = parseFloat(lambdaMinInput.value);
-                    if(isNaN(minVal)) return;
-                    lambdaMinSlider.value = minVal;
-                } else if (source === 'max_slider') {
-                    maxVal = parseFloat(lambdaMaxSlider.value);
-                    lambdaMaxInput.value = maxVal.toFixed(1);
-                } else if (source === 'max_input') {
-                    maxVal = parseFloat(lambdaMaxInput.value);
-                    if(isNaN(maxVal)) return;
-                    lambdaMaxSlider.value = maxVal;
-                }
-                
-                minVal = parseFloat(lambdaMinSlider.value);
-                maxVal = parseFloat(lambdaMaxSlider.value);
-
-                if (minVal >= maxVal) {
-                    if (source.startsWith('min')) {
-                        const newMax = Math.min(parseFloat(lambdaMaxSlider.max), minVal + parseFloat(lambdaMinSlider.step));
-                        lambdaMaxSlider.value = newMax;
-                        lambdaMaxInput.value = newMax.toFixed(1);
-                    } else { // source starts with 'max'
-                        const newMin = Math.max(parseFloat(lambdaMinSlider.min), maxVal - parseFloat(lambdaMinSlider.step));
-                        lambdaMinSlider.value = newMin;
-                        lambdaMinInput.value = newMin.toFixed(1);
-                    }
-                }
-                updateVisualization();
-            }
-            lambdaMinSlider.addEventListener('input', () => updateLambdaControls('min_slider'));
-            lambdaMinInput.addEventListener('input', () => updateLambdaControls('min_input'));
-            lambdaMaxSlider.addEventListener('input', () => updateLambdaControls('max_slider'));
-            lambdaMaxInput.addEventListener('input', () => updateLambdaControls('max_input'));
-
-
-            // --- Detector Distance Synchronization ---
-            const distanceSlider = document.getElementById('detectorDistance_slider');
-            const distanceInput = document.getElementById('detectorDistance');
-            
-            distanceSlider.addEventListener('input', () => {
-                distanceInput.value = distanceSlider.value;
-                updateVisualization();
-            });
-            distanceInput.addEventListener('input', () => {
-                distanceSlider.value = distanceInput.value;
-                updateVisualization();
-            });
-            distanceInput.addEventListener('change', () => { // Clamp value on blur
-                let val = parseFloat(distanceInput.value);
-                const min = parseFloat(distanceSlider.min);
-                const max = parseFloat(distanceSlider.max);
-                if (isNaN(val) || val < min) { distanceInput.value = min; }
-                if (val > max) { distanceInput.value = max; }
-                distanceSlider.value = distanceInput.value;
-                updateVisualization();
-            });
-
-
-            // --- Detector Diameter Synchronization ---
-            const diameterSlider = document.getElementById('detectorDiameter_slider');
-            const diameterInput = document.getElementById('detectorDiameter');
-            
-            diameterSlider.addEventListener('input', () => {
-                diameterInput.value = diameterSlider.value;
-                redrawDetector();
-            });
-            diameterInput.addEventListener('input', () => {
-                diameterSlider.value = diameterInput.value;
-                redrawDetector();
-            });
-            diameterInput.addEventListener('change', () => { // Clamp value on blur
-                let val = parseFloat(diameterInput.value);
-                const min = parseFloat(diameterSlider.min);
-                const max = parseFloat(diameterSlider.max);
-                if (isNaN(val) || val < min) { diameterInput.value = min; }
-                if (val > max) { diameterInput.value = max; }
-                diameterSlider.value = diameterInput.value;
-                redrawDetector();
-            });
-
-
-            detectorCanvas.addEventListener('contextmenu', e => e.preventDefault(), false);
-            detectorCanvas.addEventListener('wheel', onDetectorWheel, { passive: false });
-            detectorCanvas.addEventListener('mousedown', onDetectorMouseDown, false);
-            window.addEventListener('mousemove', onDetectorMouseMove, false);
-            window.addEventListener('mouseup', onDetectorMouseUp, false);
-            detectorCanvas.addEventListener('touchstart', onDetectorTouchStart, { passive: false });
-            detectorCanvas.addEventListener('touchmove', onDetectorTouchMove, { passive: false });
-            detectorCanvas.addEventListener('touchend', onDetectorTouchEnd, false);
-            window.addEventListener('resize', onWindowResize, false);
-        }
-        
-        function handleCrystalSystemChange() {
-            const system = document.getElementById('crystalSystem').value;
-            const visibleRows = { 'triclinic':['a','b','c','alpha','beta','gamma'], 'monoclinic':['a','b','c','beta'], 'orthorhombic':['a','b','c'], 'tetragonal':['a','c'], 'trigonal':['a','alpha'], 'hexagonal':['a','c'], 'cubic':['a'] };
-            ['a','b','c','alpha','beta','gamma'].forEach(p => { document.getElementById(`row_${p}`).style.display = 'none'; });
-            visibleRows[system].forEach(p => { document.getElementById(`row_${p}`).style.display = 'contents'; });
-
-            const bravaisSelect = document.getElementById('bravaisLattice');
-            const currentBravais = bravaisSelect.value;
-            bravaisSelect.innerHTML = '';
-            bravaisOptions[system].forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt;
-                option.textContent = {P:"Primitive", C:"C-Base", I:"Body-Centered", F:"Face-Centered", R:"Rhombohedral"}[opt] || opt;
-                bravaisSelect.appendChild(option);
-            });
-            if (bravaisOptions[system].includes(currentBravais)) { bravaisSelect.value = currentBravais; }
-            updateVisualization();
-        }
-        
-        function updateVisualization() {
-            detectorSpots = [];
-            highlightedSpot = null;
-            const params = getLatticeParameters();
-            if (Object.values(params).some(isNaN)) { redrawDetector(); return; }
-            if (!updateReciprocalMatrix(params)) { hklInfoDiv.textContent = "Invalid cell"; redrawDetector(); return; }
-            const bravaisType = document.getElementById('bravaisLattice').value;
-            const hkl_range = ['h','k','l'].reduce((acc, v) => ({...acc, [v+'_min']:parseInt(document.getElementById(v+'_min').value), [v+'_max']:parseInt(document.getElementById(v+'_max').value)}), {});
-            if (Object.values(hkl_range).some(isNaN)) { redrawDetector(); return; }
-            
-            const allPoints = [];
-            for (let h=hkl_range.h_min; h<=hkl_range.h_max; h++) {
-                for (let k=hkl_range.k_min; k<=hkl_range.k_max; k++) {
-                    for (let l=hkl_range.l_min; l<=hkl_range.l_max; l++) {
-                        if (h===0&&k===0&&l===0) continue;
-                        if (isReflectionAllowed(h,k,l,bravaisType)) {
-                            const pos = new THREE.Vector3(h,k,l).applyMatrix3(reciprocalMatrix);
-                            if (pos) allPoints.push({ h,k,l,pos });
+                const evt = (el.type === 'range' || el.type === 'number') ? 'input' : 'change';
+                el.addEventListener(evt, () => {
+                    const id = el.id;
+                    if (id === 'crystalSystem') { populateBravais(); updateParamRows(); rebuildLattice(); }
+                    else if (id === 'bravaisLattice') { updateParamRows(); rebuildLattice(); }
+                    else if (LATTICE.has(id)) rebuildLattice();
+                    else if (LAB.has(id)) {
+                        if (rebuildLab()) {
+                            if (METHOD_BEAM_IDS.includes(id) && id !== 'showRings') clearExposure();   // new wavelength, new pattern
+                            updateDiffraction();
+                            if (!['showLimiting', 'showRings'].includes(id)) fitCamera();
                         }
                     }
-                }
-            }
-            runLaueSimulation(allPoints);
-            redrawDetector();
+                    else if (id === 'showInset') $('inset').style.display = el.checked ? 'block' : 'none';
+                    else if (id === 'integrate') { if (el.checked) startExposure(); else stopExposure(); }
+                    else if (id === 'integTime') state.exposure.T = Math.max(0, Number(el.value) || 0);
+                    else onMethodInput(id, el);
+                });
+            });
+            document.querySelectorAll('button[data-arm]').forEach(btn => {
+                btn.addEventListener('click', () => { $('detArm').value = btn.dataset.arm; if (rebuildLab()) { updateDiffraction(); fitCamera(); } });
+            });
+            $('resetView').addEventListener('click', fitCamera);
+            $('clearBtn').addEventListener('click', clearExposure);
+            let downX = 0, downY = 0;
+            renderer.domElement.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
+            renderer.domElement.addEventListener('pointerup', e => { if (Math.hypot(e.clientX - downX, e.clientY - downY) <= 5) pick(e); });
+            new ResizeObserver(onResize).observe(container);
         }
 
-        function getLatticeParameters() {
-            const system = document.getElementById('crystalSystem').value;
-            let a=parseFloat(document.getElementById('a').value), b=parseFloat(document.getElementById('b').value), c=parseFloat(document.getElementById('c').value);
-            let alpha=parseFloat(document.getElementById('alpha').value), beta=parseFloat(document.getElementById('beta').value), gamma=parseFloat(document.getElementById('gamma').value);
-            switch(system){ case 'cubic':b=a;c=a;alpha=90;beta=90;gamma=90;break; case 'tetragonal':b=a;alpha=90;beta=90;gamma=90;break; case 'orthorhombic':alpha=90;beta=90;gamma=90;break; case 'hexagonal':b=a;alpha=90;beta=90;gamma=120;break; case 'trigonal':b=a;c=a;beta=alpha;gamma=alpha;break; case 'monoclinic':alpha=90;gamma=90;break; }
-            return {a,b,c,alpha,beta,gamma};
+        function initResizer() {
+            const resizer = $('resizer'), panel = $('controlsPanel');
+            let startX = 0, startWidth = 0;
+            const move = e => { const w = startWidth + e.clientX - startX; if (w > 300 && w < 800) panel.style.width = w + 'px'; };
+            const up = e => { resizer.releasePointerCapture(e.pointerId); resizer.removeEventListener('pointermove', move); resizer.removeEventListener('pointerup', up); };
+            resizer.addEventListener('pointerdown', e => {
+                e.preventDefault();
+                startX = e.clientX; startWidth = panel.getBoundingClientRect().width;
+                resizer.setPointerCapture(e.pointerId);
+                resizer.addEventListener('pointermove', move);
+                resizer.addEventListener('pointerup', up);
+            });
         }
-        function updateReciprocalMatrix(p) {
-            const d2r = Math.PI/180, cosA=Math.cos(p.alpha*d2r), sinA=Math.sin(p.alpha*d2r), cosB=Math.cos(p.beta*d2r), sinB=Math.sin(p.beta*d2r), cosG=Math.cos(p.gamma*d2r), sinG=Math.sin(p.gamma*d2r);
-            const v_term = 1-cosA**2-cosB**2-cosG**2+2*cosA*cosB*cosG;
-            if(v_term<=1e-9)return false;
-            const vol=p.a*p.b*p.c*Math.sqrt(v_term);
-            const a_vec=new THREE.Vector3(p.a,0,0), b_vec=new THREE.Vector3(p.b*cosG, p.b*sinG,0), c_vec=new THREE.Vector3(p.c*cosB, p.c*(cosA-cosB*cosG)/sinG, vol/(p.a*p.b*sinG));
-            const a_star_vec=new THREE.Vector3().crossVectors(b_vec,c_vec).divideScalar(vol), b_star_vec=new THREE.Vector3().crossVectors(c_vec,a_vec).divideScalar(vol), c_star_vec=new THREE.Vector3().crossVectors(a_vec,b_vec).divideScalar(vol);
-            reciprocalMatrix.set(a_star_vec.x,b_star_vec.x,c_star_vec.x, a_star_vec.y,b_star_vec.y,c_star_vec.y, a_star_vec.z,b_star_vec.z,c_star_vec.z);
+
+        // ---------- Input ----------
+        function readLattice() {
+            const system = $('crystalSystem').value, bravais = $('bravaisLattice').value;
+            const num = id => Number($(id).value);
+            let a = num('a'), b = num('b'), c = num('c'), alpha = num('alpha'), beta = num('beta'), gamma = num('gamma');
+            switch (system) {
+                case 'cubic': b = a; c = a; alpha = beta = gamma = 90; break;
+                case 'tetragonal': b = a; alpha = beta = gamma = 90; break;
+                case 'orthorhombic': alpha = beta = gamma = 90; break;
+                case 'hexagonal': b = a; alpha = beta = 90; gamma = 120; break;
+                case 'trigonal':
+                    if (bravais === 'Rrh') { b = a; c = a; beta = alpha; gamma = alpha; }
+                    else { b = a; alpha = beta = 90; gamma = 120; }
+                    break;
+                case 'monoclinic': alpha = gamma = 90; break;
+            }
+            const params = { a, b, c, alpha, beta, gamma };
+            if (!Object.values(params).every(Number.isFinite)) throw new Error('Enter complete, finite lattice parameters.');
+            if ([a, b, c].some(v => v < 1)) throw new Error('Lattice lengths must be at least 1 Å.');
+            if ([alpha, beta, gamma].some(v => v < 1 || v > 179)) throw new Error('Cell angles must be between 1° and 179°.');
+            const range = {};
+            let combinations = 1;
+            for (const axis of ['h', 'k', 'l']) {
+                for (const bound of ['min', 'max']) {
+                    const id = `${axis}_${bound}`, raw = $(id).value.trim(), value = Number(raw);
+                    if (raw === '' || !Number.isSafeInteger(value)) throw new Error('Enter integer bounds for h, k and l.');
+                    range[id] = value;
+                }
+                if (range[`${axis}_min`] > range[`${axis}_max`]) throw new Error(`${axis}: minimum must not exceed maximum.`);
+                combinations *= range[`${axis}_max`] - range[`${axis}_min`] + 1;
+                if (combinations > MAX_HKL_COMBINATIONS) throw new Error(`Reduce the ranges to at most ${MAX_HKL_COMBINATIONS.toLocaleString()} (h, k, l) combinations.`);
+            }
+            return { params, bravais, range };
+        }
+
+        function readDetector() {
+            const L = Number($('detDist').value), W = Number($('detWidth').value), arm = Number($('detArm').value);
+            if (!Number.isFinite(L) || L < 10 || L > 1000) throw new Error('Detector distance must be between 10 and 1000 mm.');
+            if (!Number.isFinite(W) || W < 10 || W > 2000) throw new Error('Detector width must be between 10 and 2000 mm.');
+            if (!Number.isFinite(arm) || arm < -180 || arm > 180) throw new Error('Detector angle must be between −180° and 180°.');
+            return { L, W, arm, show3D: $('show3DDet') ? $('show3DDet').checked : false };
+        }
+
+        // ---------- Crystallography ----------
+        // Reciprocal basis [a*, b*, c*] (Å⁻¹, no 2π) in the crystal frame, or null if the cell is invalid.
+        function computeBasis(p, convention) {
+            const cA = Math.cos(deg(p.alpha)), cB = Math.cos(deg(p.beta)), cG = Math.cos(deg(p.gamma));
+            const sA = Math.sin(deg(p.alpha)), sB = Math.sin(deg(p.beta)), sG = Math.sin(deg(p.gamma));
+            const vt = 1 - cA * cA - cB * cB - cG * cG + 2 * cA * cB * cG;
+            if (!(vt > 1e-9) || sA < 1e-9 || sB < 1e-9 || sG < 1e-9) return null;
+            const V = p.a * p.b * p.c * Math.sqrt(vt);
+            let as, bs, cs;
+            if (convention === 'c') {
+                // Busing & Levy (1967): a* ∥ x, b* in the xy plane, c ∥ z.
+                const la = p.b * p.c * sA / V, lb = p.a * p.c * sB / V, lc = p.a * p.b * sG / V;
+                const cBs = (cA * cG - cB) / (sA * sG), cGs = (cA * cB - cG) / (sA * sB);
+                const sBs = Math.sqrt(Math.max(0, 1 - cBs * cBs)), sGs = Math.sqrt(Math.max(0, 1 - cGs * cGs));
+                as = new THREE.Vector3(la, 0, 0);
+                bs = new THREE.Vector3(lb * cGs, lb * sGs, 0);
+                cs = new THREE.Vector3(lc * cBs, -lc * sBs * cA, 1 / p.c);
+            } else {
+                // a ∥ x, b in the xy plane, hence c* ∥ z (along the beam).
+                const av = new THREE.Vector3(p.a, 0, 0);
+                const bv = new THREE.Vector3(p.b * cG, p.b * sG, 0);
+                const cv = new THREE.Vector3(p.c * cB, p.c * (cA - cB * cG) / sG, V / (p.a * p.b * sG));
+                as = new THREE.Vector3().crossVectors(bv, cv).divideScalar(V);
+                bs = new THREE.Vector3().crossVectors(cv, av).divideScalar(V);
+                cs = new THREE.Vector3().crossVectors(av, bv).divideScalar(V);
+            }
+            const basis = [as, bs, cs];
+            return basis.every(v => Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)) ? basis : null;
+        }
+
+        // Lattice-centring conditions only.
+        function isReflectionAllowed(h, k, l, bravais) {
+            const odd = n => Math.abs(n % 2);
+            switch (bravais) {
+                case 'I': return (h + k + l) % 2 === 0;
+                case 'F': return odd(h) === odd(k) && odd(k) === odd(l);
+                case 'A': return (k + l) % 2 === 0;
+                case 'B': return (h + l) % 2 === 0;
+                case 'C': return (h + k) % 2 === 0;
+                case 'R': return (-h + k + l) % 3 === 0;   // obverse setting, hexagonal axes
+                default: return true;                       // P, and R on rhombohedral axes
+            }
+        }
+
+        // ---------- Scene building ----------
+        function disposeGroup(group) {
+            for (const child of [...group.children]) {
+                child.traverse(o => {
+                    const inArrow = o.parent && o.parent.type === 'ArrowHelper';   // shared geometries
+                    if (o.geometry && !inArrow) o.geometry.dispose();
+                    if (o.material) [].concat(o.material).forEach(m => m.dispose());
+                    if (o.isInstancedMesh) o.dispose();
+                    if (o.isCSS2DObject) o.element.remove();
+                });
+                group.remove(child);
+            }
+        }
+
+        function makeLabel(text, position, color = '#ffffff') {
+            const div = document.createElement('div');
+            div.className = 'label'; div.textContent = text; div.style.color = color;
+            const label = new CSS2DObject(div);
+            label.position.copy(position);
+            return label;
+        }
+
+        function makeInstanced(geometry, capacity) {
+            const m = new THREE.InstancedMesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }), Math.max(capacity, 1));
+            m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            m.setColorAt(0, _color.set(0xffffff));   // allocates instanceColor
+            m.frustumCulled = false;
+            m.count = 0;
+            return m;
+        }
+
+        function addSphere(radius, color, opacity) {
+            const m = new THREE.Mesh(
+                new THREE.SphereGeometry(radius, 64, 48),
+                new THREE.MeshPhongMaterial({ color, opacity, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+            m.position.set(0, 0, -radius);
+            labGroup.add(m);
+        }
+
+        function addReciprocalAxes(basis) {
+            ['a', 'b', 'c'].forEach((key, i) => {
+                const v = basis[i], mag = v.length();
+                latticeGroup.add(new THREE.ArrowHelper(v.clone().normalize(), new THREE.Vector3(), mag, AXIS_COLORS[key], mag * 0.15, mag * 0.11));
+                latticeGroup.add(makeLabel(`${key}*`, v.clone().multiplyScalar(1.15), css(AXIS_COLORS[key])));
+            });
+            if (!$('showRealAxes') || !$('showRealAxes').checked) return;
+            // Real-space directions a = b*×c*/V*, etc., drawn dashed at a fixed length.
+            const L = 1.3 * Math.max(...basis.map(v => v.length()));
+            const real = [
+                new THREE.Vector3().crossVectors(basis[1], basis[2]),
+                new THREE.Vector3().crossVectors(basis[2], basis[0]),
+                new THREE.Vector3().crossVectors(basis[0], basis[1])];
+            ['a', 'b', 'c'].forEach((key, i) => {
+                const end = real[i].normalize().multiplyScalar(L);
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), end]),
+                    new THREE.LineDashedMaterial({ color: AXIS_COLORS[key], dashSize: L * 0.06, gapSize: L * 0.04 }));
+                line.computeLineDistances();
+                latticeGroup.add(line, makeLabel(key, end.clone().multiplyScalar(1.08), css(AXIS_COLORS[key])));
+            });
+        }
+
+        function rebuildLattice() {
+            let cfg;
+            try { cfg = readLattice(); }
+            catch (e) { setError('lattice', `${e.message} Display unchanged.`); return; }
+            const basis = computeBasis(cfg.params, CONVENTION());
+            if (!basis) { setError('lattice', 'Invalid cell (zero volume). Display unchanged.'); return; }
+            const M = new THREE.Matrix3().set(
+                basis[0].x, basis[1].x, basis[2].x,
+                basis[0].y, basis[1].y, basis[2].y,
+                basis[0].z, basis[1].z, basis[2].z);
+            const r = cfg.range, base = [];
+            for (let h = r.h_min; h <= r.h_max; h++)
+                for (let k = r.k_min; k <= r.k_max; k++)
+                    for (let l = r.l_min; l <= r.l_max; l++) {
+                        if ((h === 0 && k === 0 && l === 0) || !isReflectionAllowed(h, k, l, cfg.bravais)) continue;
+                        const pos = new THREE.Vector3(h, k, l).applyMatrix3(M);
+                        base.push({ h, k, l, pos, g: pos.length(), key: `${h},${k},${l}` });
+                    }
+            let items;
+            try { items = makeItems(base); }
+            catch (e) { setError('lattice', `${e.message} Display unchanged.`); return; }
+            setError('lattice', '');
+
+            state.items = items;
+            state.worldPos = items.map(() => new THREE.Vector3());
+            state.maxG = base.reduce((m, p) => Math.max(m, p.g), 0) || 1;
+            state.pointRadius = POINT_SCALE * Math.min(...basis.map(v => v.length()));
+
+            disposeGroup(latticeGroup);
+            state.pointMesh = makeInstanced(new THREE.SphereGeometry(state.pointRadius, 10, 8), items.length);
+            latticeGroup.add(state.pointMesh);
+            if (SHOW_RECIPROCAL_AXES) addReciprocalAxes(basis);
+            state.marker = new THREE.Mesh(new THREE.SphereGeometry(state.pointRadius * 2.2, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffee00, wireframe: true }));
+            state.marker.visible = false;
+            latticeGroup.add(state.marker);
+
+            state.selected = null;
+            if (state.selectedKey) {
+                const idx = items.findIndex(p => p.key === state.selectedKey);
+                if (idx >= 0) state.selected = idx; else state.selectedKey = null;
+            }
+            rebuildLab();
+            if (!state.keepExposure) clearExposure();
+            state.keepExposure = false;
+            onLatticeChanged();
+            updateDiffraction();
+        }
+
+        function rebuildLab() {
+            let det;
+            try { readBeam(); det = readDetector(); }
+            catch (e) { setError('lab', `${e.message} Display unchanged.`); return false; }
+            setError('lab', '');
+            const R = state.R;
+            state.ewaldCenter.set(0, 0, -R);
+            disposeGroup(labGroup);
+
+            addSpheres();
+            if ($('showLimiting').checked) {
+                labGroup.add(new THREE.Mesh(new THREE.SphereGeometry(2 * R, 32, 16),
+                    new THREE.MeshBasicMaterial({ color: 0xffaa33, wireframe: true, transparent: true, opacity: 0.15, depthWrite: false })));
+            }
+            // Incident beam, then k0 from the crystal (sphere centre) to the reciprocal-lattice origin.
+            labGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -2.2 * R), state.ewaldCenter.clone()]),
+                new THREE.LineBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.5 })));
+            labGroup.add(new THREE.ArrowHelper(_Z.clone(), state.ewaldCenter.clone(), R, 0xff00ff, R * 0.1, R * 0.05));
+            labGroup.add(makeLabel(K0_LABEL, new THREE.Vector3(R * 0.06, 0, -R / 2), '#ff66ff'));
+            addLabExtras();
+
+            // Detector: normal n at angle 2θD from the beam, rotated about the vertical axis through the crystal.
+            const a = deg(det.arm);
+            const d = {
+                L: det.L, half: det.W / 2, arm: det.arm,
+                n: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)),
+                eh: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)),      // horizontal axis of the detector (y × n)
+                quat: new THREE.Quaternion(),
+                s3: SCENE_PER_MM * R, spotR: det.W * 0.006,
+                show3D: det.show3D, spotMesh: null, accumMesh: null, cap: Math.max(state.items.length, 1)
+            };
+            d.quat.setFromUnitVectors(_Z, d.n);
+            state.det = d;
+            if (d.show3D) {
+                const plane = new THREE.Mesh(new THREE.PlaneGeometry(2 * d.half * d.s3, 2 * d.half * d.s3),
+                    new THREE.MeshBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+                plane.position.copy(state.ewaldCenter).addScaledVector(d.n, d.L * d.s3);
+                plane.quaternion.copy(d.quat);
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(plane.geometry), new THREE.LineBasicMaterial({ color: 0x6677aa }));
+                edges.position.copy(plane.position);
+                edges.quaternion.copy(d.quat);
+                labGroup.add(plane, edges, makeLabel('detector', detTo3D(d.half, d.half, new THREE.Vector3()), '#99aadd'));
+                d.accumMesh = makeInstanced(new THREE.CircleGeometry(d.spotR * d.s3, 20), d.cap);
+                d.spotMesh = makeInstanced(new THREE.CircleGeometry(d.spotR * d.s3, 20), d.cap);
+                labGroup.add(d.accumMesh, d.spotMesh);
+            }
+            state.exposure.dirty = true;   // re-place recorded spots on the (possibly moved) detector
+            onDetectorRebuilt();
             return true;
         }
-        function isReflectionAllowed(h,k,l,bravaisType){switch(bravaisType){case 'P':return true;case 'I':return (h+k+l)%2===0;case 'F':return (h%2===k%2)&&(k%2===l%2);case 'C':return (h+k)%2===0;case 'R':return (-h+k+l)%3===0;default:return true;}}
-        
-        function onDetectorWheel(e){
-            e.preventDefault();
-            const distInput = document.getElementById('detectorDistance');
-            const distSlider = document.getElementById('detectorDistance_slider');
-            let currentDist = parseFloat(distInput.value);
-            const step = 2;
-            currentDist -= Math.sign(e.deltaY) * step;
-            currentDist = Math.max(5, Math.min(200, currentDist)); 
-            distInput.value = Math.round(currentDist);
-            distSlider.value = Math.round(currentDist);
-            updateVisualization();
+
+        // ---------- Detector geometry ----------
+        // Detector coordinates (mm) → 3D scene position (crystal at the Ewald-sphere centre).
+        function detTo3D(x, y, out) {
+            const d = state.det;
+            return out.copy(state.ewaldCenter).addScaledVector(d.n, d.L * d.s3).addScaledVector(d.eh, x * d.s3).addScaledVector(_Y, y * d.s3);
         }
-        
-        function onDetectorMouseDown(event) {
-            if(event.button===0){isPanning=true;isDragging=false;mouseDownPosition.set(event.clientX,event.clientY);}
+
+        // Project a unit beam direction u (from the crystal) onto the detector; false if it misses.
+        function detProject(u, out) {
+            const d = state.det, c = u.dot(d.n);
+            if (c <= 1e-6) return false;
+            out.t = d.L / c;
+            out.x = out.t * u.dot(d.eh);
+            out.y = out.t * u.y;
+            return Math.abs(out.x) <= d.half && Math.abs(out.y) <= d.half;
         }
-        
-        // --- CORRECTED MOUSE ROTATION ---
-        function onDetectorMouseMove(e){
-            if(isPanning){
-                const cur = new THREE.Vector2(e.clientX,e.clientY);
-                if(mouseDownPosition.distanceTo(cur) > 2){
-                    isDragging = true;
-                    detectorContainer.style.cursor = 'grabbing';
-                }
-                if(isDragging){
-                    const rotYInput = document.getElementById('rotY'); // Horizontal axis rotation
-                    const rotZInput = document.getElementById('rotZ'); // Vertical axis rotation
-                    const rotYSlider = document.getElementById('rotY_slider');
-                    const rotZSlider = document.getElementById('rotZ_slider');
 
-                    const dx = e.clientX - mouseDownPosition.x;
-                    const dy = e.clientY - mouseDownPosition.y;
-                    const sensitivity = 0.25;
-
-                    // Horizontal drag (dx) rotates around the vertical axis (user's Z-axis)
-                    let newRotZ = parseFloat(rotZInput.value) + dx * sensitivity;
-                    // Vertical drag (dy) rotates around the horizontal axis (user's Y-axis)
-                    let newRotY = parseFloat(rotYInput.value) + dy * sensitivity;
-
-                    // Clamp values to the slider's min/max
-                    newRotZ = Math.max(parseFloat(rotZSlider.min), Math.min(parseFloat(rotZSlider.max), newRotZ));
-                    newRotY = Math.max(parseFloat(rotYSlider.min), Math.min(parseFloat(rotYSlider.max), newRotY));
-                    
-                    // Update UI controls
-                    rotZInput.value = newRotZ.toFixed(0);
-                    rotYInput.value = newRotY.toFixed(0);
-                    rotZSlider.value = newRotZ.toFixed(0);
-                    rotYSlider.value = newRotY.toFixed(0);
-
-                    mouseDownPosition.copy(cur);
-                    updateVisualization();
-                }
-            }
+        // Spots store their beam direction; this places one on the current detector (sets _pl.x, _pl.y, _pl.r in mm).
+        const _pl = { x: 0, y: 0, t: 0, r: 0 };
+        function placeSpot(sp) {
+            if (!detProject(_v.set(sp.ux, sp.uy, sp.uz), _pl)) return false;
+            _pl.r = state.det.spotR + _pl.t * sp.ang;   // mosaic spread grows with the path length
+            return true;
         }
-        function onDetectorMouseUp(e){
-            if(e.button===0){
-                if(!isDragging){
-                    identifyDetectorSpot(e);
-                }
-                isPanning=false;
-                isDragging=false;
-                detectorContainer.style.cursor='default';
-            }
+
+        function setLineSegments(lines, arr, colors) {
+            lines.geometry.dispose();
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+            if (colors) geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            lines.geometry = geom;
         }
-        
-        function onDetectorTouchStart(e){e.preventDefault();if(e.touches.length===1){isPanning=true;isDragging=false;mouseDownPosition.set(e.touches[0].clientX,e.touches[0].clientY);}else if(e.touches.length===2){isPanning=false;const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastTouchDistance=Math.sqrt(dx*dx+dy*dy);lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};}}
-        
-        // --- CORRECTED TOUCH ROTATION ---
-        function onDetectorTouchMove(e){
-            e.preventDefault();
-            if(e.touches.length===1&&isPanning){
-                const cur=new THREE.Vector2(e.touches[0].clientX,e.touches[0].clientY);
-                if(mouseDownPosition.distanceTo(cur)>5) isDragging=true;
-                if(isDragging){
-                    const rotYInput = document.getElementById('rotY'); // Horizontal axis rotation
-                    const rotZInput = document.getElementById('rotZ'); // Vertical axis rotation
-                    const rotYSlider = document.getElementById('rotY_slider');
-                    const rotZSlider = document.getElementById('rotZ_slider');
-                    const dx = e.touches[0].clientX - mouseDownPosition.x;
-                    const dy = e.touches[0].clientY - mouseDownPosition.y;
-                    const sensitivity = 0.25;
 
-                    // Horizontal drag (dx) rotates around the vertical axis (user's Z-axis)
-                    let newRotZ = parseFloat(rotZInput.value) + dx * sensitivity;
-                    // Vertical drag (dy) rotates around the horizontal axis (user's Y-axis)
-                    let newRotY = parseFloat(rotYInput.value) + dy * sensitivity;
-
-                    // Clamp values
-                    newRotZ = Math.max(parseFloat(rotZSlider.min), Math.min(parseFloat(rotZSlider.max), newRotZ));
-                    newRotY = Math.max(parseFloat(rotYSlider.min), Math.min(parseFloat(rotYSlider.max), newRotY));
-
-                    // Update UI
-                    rotZInput.value = newRotZ.toFixed(0);
-                    rotYInput.value = newRotY.toFixed(0);
-                    rotZSlider.value = newRotZ.toFixed(0);
-                    rotYSlider.value = newRotY.toFixed(0);
-
-                    mouseDownPosition.set(e.touches[0].clientX, e.touches[0].clientY);
-                    updateVisualization();
-                }
-            } else if(e.touches.length===2){
-                const dx=e.touches[0].clientX-e.touches[1].clientX;
-                const dy=e.touches[0].clientY-e.touches[1].clientY;
-                const newDist=Math.sqrt(dx*dx+dy*dy);
-                const distInput = document.getElementById('detectorDistance');
-                let currentDist = parseFloat(distInput.value);
-                currentDist *= lastTouchDistance / newDist;
-                currentDist = Math.max(10, Math.min(200, currentDist)); 
-                distInput.value = Math.round(currentDist);
-                lastTouchDistance = newDist;
-                updateVisualization();
+        // Draw a set of spots on the 3D detector.
+        function fillDetectorMesh(mesh, spots, colorOf) {
+            const det = state.det;
+            if (!mesh) return;
+            let i = 0;
+            for (const sp of spots) {
+                if (i >= det.cap) break;
+                if (!placeSpot(sp)) continue;
+                detTo3D(_pl.x, _pl.y, _P).addScaledVector(det.n, -det.half * det.s3 * 0.002);
+                const ss = _pl.r / det.spotR;
+                mesh.setMatrixAt(i, _m4b.compose(_P, det.quat, _s.set(ss, ss, 1)));
+                mesh.setColorAt(i, colorOf(sp, _color));
+                i++;
             }
+            mesh.count = i;
+            mesh.instanceMatrix.needsUpdate = true;
+            if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
         }
-        function onDetectorTouchEnd(e){if(!isDragging&&e.touches.length===0){identifyDetectorSpot({clientX:mouseDownPosition.x,clientY:mouseDownPosition.y});}isPanning=false;isDragging=false;lastTouchDistance=0;lastTouchCenter=null;}
 
-        function identifyDetectorSpot(event) {
-            if (detectorSpots.length === 0) return;
-            const rect = detectorCanvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            let closestSpot = null, minDistanceSq = Infinity;
-            
-            const pixels_per_mm = 5;
-            const centerX=detectorCanvas.width/2;
-            const centerY=detectorCanvas.height/2;
-
-            for (const spot of detectorSpots) {
-                const canvasX = centerX + spot.x_2d * pixels_per_mm;
-                const canvasY = centerY - spot.y_2d * pixels_per_mm;
-                const distSq = (x - canvasX)**2 + (y - canvasY)**2;
-                if (distSq < minDistanceSq) {
-                    minDistanceSq = distSq;
-                    closestSpot = spot;
-                }
-            }
-            
-            function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
-            function gcdOfThree(a, b, c) {
-                let absA = Math.abs(a);
-                let absB = Math.abs(b);
-                let absC = Math.abs(c);
-                return gcd(gcd(absA, absB), absC);
-            }
-
-            if (closestSpot && minDistanceSq < 100) {
-                const { h, k, l } = closestSpot;
-                const commonDivisor = gcdOfThree(h, k, l);
-                const h_reduced = (commonDivisor === 0) ? h : h / commonDivisor;
-                const k_reduced = (commonDivisor === 0) ? k : k / commonDivisor;
-                const l_reduced = (commonDivisor === 0) ? l : l / commonDivisor;
-                hklInfoDiv.textContent = `Spot (hkl): (${h_reduced},${k_reduced},${l_reduced})`;
-                highlightedSpot = closestSpot;
-                redrawDetector();
-            }
+        function finishPointMesh(n, nDiff, kout, koutCol, ext) {
+            const mesh = state.pointMesh;
+            mesh.count = n;
+            mesh.instanceMatrix.needsUpdate = true;
+            if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+            setLineSegments(koutLines, kout, koutCol);
+            setLineSegments(extLines, ext);
+            const exp = state.exposure;
+            if (exp.dirty && state.det) { exp.dirty = false; fillDetectorMesh(state.det.accumMesh, exp.spots.values(), recordedColor); }
+            state.nShown = n;
+            state.nDiff = nDiff;
+            updateSelection();
         }
-        
-        // --- CORRECTED EULER ROTATION ---
-        function runLaueSimulation(points) {
-            // Get user-defined rotations in radians
-            const rotX_rad = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotX').value) || 0); // User's X rotation (around beam)
-            const rotY_rad = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotY').value) || 0); // User's Y rotation (around horizontal)
-            const rotZ_rad = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotZ').value) || 0); // User's Z rotation (around vertical)
 
-            // Remap from user's coordinate system to simulation's coordinate system
-            // Simulation axes (X, Y, Z) correspond to User's axes (Y, Z, X)
-            const euler = new THREE.Euler(rotY_rad, rotZ_rad, rotX_rad, 'XYZ');
+        // ---------- Integration (exposure) ----------
+        function startExposure() {
+            const exp = state.exposure;
+            exp.spots.clear();
+            Object.assign(exp, { active: true, elapsed: 0, T: Math.max(0, Number($('integTime').value) || 0), dirty: true });
+            $('integrate').checked = true;
+            onIntegrateChange(true);
+            updateDiffraction();   // record what diffracts at t = 0
+        }
 
-            const lambda_min=parseFloat(document.getElementById('lambda_min').value),lambda_max=parseFloat(document.getElementById('lambda_max').value);
-            if(isNaN(lambda_min)||isNaN(lambda_max)||lambda_min<=0||lambda_max<=lambda_min)return;
-            const k_min=1/lambda_max, k_max=1/lambda_min;
-            const tempPos=new THREE.Vector3();
-            points.forEach(p=>{
-                tempPos.copy(p.pos).applyEuler(euler);
-                const g_sq=tempPos.lengthSq(), g_z=tempPos.z;
-                if(g_z>=-1e-6)return;
-                const k_diff=-g_sq/(2*g_z);
-                if(k_diff>=k_min&&k_diff<=k_max)projectLaueSpot(tempPos,k_diff,p);
+        function stopExposure() {
+            const exp = state.exposure;
+            $('integrate').checked = false;
+            if (!exp.active) return;
+            exp.active = false;
+            onIntegrateChange(false);
+        }
+
+        // Erase the detector; integration continues if it is on.
+        function clearExposure() {
+            const exp = state.exposure;
+            exp.spots.clear();
+            exp.elapsed = 0;
+            exp.dirty = false;
+            if (state.det) fillDetectorMesh(state.det.accumMesh, [], recordedColor);
+        }
+
+        // Keep the strongest occurrence of each reflection.
+        function recordSpot(sp) {
+            const exp = state.exposure, old = exp.spots.get(sp.key);
+            if (!old || sp.w > old.w) { exp.spots.set(sp.key, sp); exp.dirty = true; }
+        }
+
+        function tickExposure(dt) {
+            const exp = state.exposure;
+            if (!exp.active) return;
+            exp.elapsed += dt;
+            if (exp.T > 0 && exp.elapsed >= exp.T) { exp.elapsed = exp.T; stopExposure(); }
+        }
+
+        function insetSpots() { return [...state.live, ...state.exposure.spots.values()]; }
+
+        // ---------- Detector inset ----------
+        const inset = { scale: 1, cx: 0, cy: 0, imgH: 0 };
+
+        function setInsetSize(width) {
+            const maxSize = Math.max(160, Math.min(container ? container.clientWidth : 900, 900) - 20);
+            const w = Math.min(Math.max(width, 160), maxSize);
+            state.insetWidth = w;
+            $('inset').style.width = w + 'px';
+            $('inset').style.height = Math.round(w * INSET_RATIO) + 'px';
+        }
+
+        function initInset() {
+            const handle = $('insetHandle'), cv = $('insetCanvas');
+            let startX = 0, startY = 0, startSize = 0;
+            const move = e => setInsetSize(startSize + Math.max(startX - e.clientX, e.clientY - startY));
+            const up = e => { handle.releasePointerCapture(e.pointerId); handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); };
+            handle.addEventListener('pointerdown', e => {
+                e.preventDefault(); e.stopPropagation();
+                startX = e.clientX; startY = e.clientY; startSize = state.insetWidth;
+                handle.setPointerCapture(e.pointerId);
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', up);
             });
-        }
-        
-        function projectLaueSpot(reciprocalPoint,k,pointData){
-            const dist=parseFloat(document.getElementById('detectorDistance').value);
-            const pos=document.getElementById('detectorPosition').value;
-            const k_f=new THREE.Vector3().addVectors(reciprocalPoint,new THREE.Vector3(0,0,k));
-            const target_z=(pos==='transmission')?dist:-dist;
-            if(Math.abs(k_f.z)<1e-6)return;
-            const t=target_z/k_f.z;
-            if(t<0)return;
-            detectorSpots.push({x_2d:t*k_f.x,y_2d:t*k_f.y,h:pointData.h,k:pointData.k,l:pointData.l});
-        }
-        
-        function redrawDetector() {
-            if (!detectorCtx) return;
-            detectorCtx.fillStyle='#1a1a2a';
-            detectorCtx.fillRect(0,0,detectorCanvas.width,detectorCanvas.height);
-            
-            const pixels_per_mm = 5;
-            const centerX = detectorCanvas.width/2;
-            const centerY = detectorCanvas.height/2;
-
-            // Draw Detector Overlay
-            const diameter_mm = parseFloat(document.getElementById('detectorDiameter').value);
-            const radius_px = (diameter_mm / 2) * pixels_per_mm;
-            detectorCtx.beginPath();
-            detectorCtx.arc(centerX, centerY, radius_px, 0, 2 * Math.PI);
-            detectorCtx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
-            detectorCtx.lineWidth = 2;
-            detectorCtx.setLineDash([5, 5]); // Make the line dashed
-            detectorCtx.stroke();
-            detectorCtx.setLineDash([]); // Reset to solid line for other strokes
-            
-            // Draw Spots
-            const detectorRadius_mm = diameter_mm / 2;
-            detectorSpots.forEach(spot => {
-                const isHighlighted=(highlightedSpot===spot);
-                const distanceFromCenter_mm = Math.sqrt(spot.x_2d**2 + spot.y_2d**2);
-
-                let spotColor = isHighlighted ? '#ff4444' : '#ffff00';
-                
-                if (distanceFromCenter_mm > detectorRadius_mm) {
-                    if (!isHighlighted) {
-                        spotColor = 'rgba(128, 128, 128, 0.5)';
-                    }
+            cv.addEventListener('pointerdown', e => {
+                e.stopPropagation();
+                if (!state.det) return;
+                const rect = cv.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top;
+                if (my > inset.imgH) return;
+                let bestKey = null, bestD2 = Infinity;
+                for (const sp of insetSpots()) {
+                    if (!placeSpot(sp)) continue;
+                    const [sx, sy] = insetXY(_pl.x, _pl.y);
+                    const rr = Math.max(_pl.r * inset.scale, 3) + 5, d2 = (sx - mx) ** 2 + (sy - my) ** 2;
+                    if (d2 <= rr * rr && d2 < bestD2) { bestKey = sp.key; bestD2 = d2; }
                 }
-
-                const canvasX=centerX+spot.x_2d*pixels_per_mm;
-                const canvasY=centerY-spot.y_2d*pixels_per_mm;
-                
-                detectorCtx.beginPath();
-                detectorCtx.arc(canvasX,canvasY,isHighlighted?6:3.5,0,2*Math.PI);
-                detectorCtx.fillStyle=spotColor;
-                detectorCtx.fill();
-                detectorCtx.strokeStyle='black';
-                detectorCtx.lineWidth=0.5;
-                detectorCtx.stroke();
+                if (!bestKey) return;
+                const idx = state.items.findIndex(p => p.key === bestKey);
+                state.selected = idx >= 0 ? idx : null;
+                state.selectedKey = idx >= 0 ? bestKey : null;
+                updateSelection();
             });
         }
 
-        function onWindowResize() {
-            const detContainer=document.getElementById('detectorContainer');
-            if(!detContainer)return;
-            const detWidth=detContainer.clientWidth,detHeight=detContainer.clientHeight;
-            if(detWidth>0&&detHeight>0){detectorCanvas.width=detWidth;detectorCanvas.height=detHeight;}
-            updateVisualization();
+        // Image viewed from the crystal along the detector normal: screen right = −eh, up = +y.
+        function insetXY(x, y) { return [inset.cx - x * inset.scale, inset.cy - y * inset.scale]; }
+
+        // Trace the cone of half-angle tth around the beam on the detector.
+        function traceCone(ctx, tth) {
+            const st = Math.sin(tth), ct = Math.cos(tth), d = state.det;
+            let pen = false;
+            ctx.beginPath();
+            for (let i = 0; i <= 360; i++) {
+                const psi = deg(i);
+                _u.set(st * Math.cos(psi), st * Math.sin(psi), ct);
+                const c = _u.dot(d.n);
+                if (c <= 1e-3) { pen = false; continue; }
+                const t = d.L / c, [x, y] = insetXY(t * _u.dot(d.eh), t * _u.y);
+                if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; }
+            }
+            ctx.stroke();
         }
 
-        function animate(){requestAnimationFrame(animate);}
-        window.addEventListener('load',init);
+        function fillSpot(ctx, sp, rgb, alpha) {
+            const [x, y] = insetXY(_pl.x, _pl.y);
+            ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
+            ctx.beginPath(); ctx.arc(x, y, Math.max(_pl.r * inset.scale, 2.5), 0, 2 * Math.PI); ctx.fill();
+        }
 
+        function drawInset() {
+            if ($('inset').style.display === 'none') return;
+            const cv = $('insetCanvas'), dpr = window.devicePixelRatio || 1;
+            const W = cv.clientWidth, H = cv.clientHeight;
+            if (W === 0 || H === 0) return;
+            if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+            const ctx = cv.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.fillStyle = '#05060c';
+            ctx.fillRect(0, 0, W, H);
+            ctx.font = '11px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+            const det = state.det;
+            inset.imgH = Math.min(W, H);
+            if (!det) return;
+            inset.scale = (Math.min(W, inset.imgH) / 2 - 8) / det.half;
+            inset.cx = W / 2; inset.cy = inset.imgH / 2;
+            const s = det.half * inset.scale;
+
+            ctx.strokeStyle = '#334'; ctx.lineWidth = 1;
+            ctx.strokeRect(inset.cx - s, inset.cy - s, 2 * s, 2 * s);
+            ctx.save();
+            ctx.beginPath(); ctx.rect(inset.cx - s, inset.cy - s, 2 * s, 2 * s); ctx.clip();
+            ctx.setLineDash([3, 4]); ctx.strokeStyle = '#2b3350';
+            for (let t = 15; t < 180; t += 15) traceCone(ctx, deg(t));   // 2θ every 15°
+            ctx.setLineDash([]);
+            // Beam positions: transmitted beam (+z) and incoming beam (−z, back-reflection hole).
+            for (const z of [1, -1]) {
+                if (!detProject(_v.set(0, 0, z), _hit)) continue;
+                const [x, y] = insetXY(_hit.x, _hit.y);
+                ctx.strokeStyle = '#ff66ff';
+                ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5); ctx.stroke();
+            }
+            const exp = state.exposure;
+            let nRec = 0;
+            for (const sp of exp.spots.values()) { if (placeSpot(sp)) { nRec++; fillSpot(ctx, sp, recordedRGB(sp), 0.5 + 0.5 * sp.w); } }
+            const status = drawInsetSpots(ctx);
+            const sel = state.selectedKey && insetSpots().find(sp => sp.key === state.selectedKey);
+            if (sel && placeSpot(sel)) {
+                const [x, y] = insetXY(_pl.x, _pl.y);
+                ctx.strokeStyle = '#ffee00'; ctx.lineWidth = 1;
+                ctx.strokeRect(x - 7, y - 7, 14, 14);
+            }
+            ctx.restore();
+
+            // Captions on a dark backdrop so they stay readable over spots.
+            const caption = (text, y) => {
+                ctx.fillStyle = 'rgba(5, 6, 12, 0.75)';
+                ctx.fillRect(4, y - 11, ctx.measureText(text).width + 8, 15);
+                ctx.fillStyle = '#aab';
+                ctx.fillText(text, 8, y);
+            };
+            caption(`Detector  L = ${det.L} mm,  2θD = ${det.arm}°`, 15);
+            caption(status, inset.imgH - 8);
+            if (exp.active || exp.spots.size) {
+                caption(`${exp.active ? 'Integrating' : 'Integrated'} ${exp.elapsed.toFixed(1)} s   ${nRec} of ${exp.spots.size} recorded spots on detector`, inset.imgH - 24);
+            }
+            if (exp.active) {
+                ctx.fillStyle = '#ff5555';
+                ctx.beginPath(); ctx.arc(W - 12, 11, 4, 0, 2 * Math.PI); ctx.fill();
+            }
+            drawInsetExtras(ctx, W, H);
+        }
+
+        // ---------- Picking and info ----------
+        function pick(e) {
+            const rect = renderer.domElement.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            let best = -1, bestD2 = PICK_RADIUS_PX ** 2, bestZ = Infinity;
+            for (const i of state.visible) {
+                _v.copy(state.worldPos[i]).project(camera);
+                if (_v.z < -1 || _v.z > 1) continue;
+                const sx = (_v.x + 1) / 2 * rect.width, sy = (1 - _v.y) / 2 * rect.height;
+                const d2 = (sx - mx) ** 2 + (sy - my) ** 2;
+                if (d2 < bestD2 - 4 || (d2 <= bestD2 + 4 && _v.z < bestZ)) { best = i; bestD2 = Math.min(d2, bestD2); bestZ = _v.z; }
+            }
+            state.selected = best >= 0 ? best : null;
+            state.selectedKey = best >= 0 ? state.items[best].key : null;
+            updateSelection();
+        }
+
+        function updateSelection() {
+            let text = `Shown: ${state.nShown}   Diffracting: ${state.nDiff}`;
+            const p = state.selected != null ? state.items[state.selected] : null, marker = state.marker;
+            if (p) {
+                text += '\n' + selectionDetails(p) + `\nDebye–Waller factor = ${p.I.toFixed(3)}`;
+                if (marker) {
+                    marker.position.copy(p.pos);
+                    marker.scale.setScalar(p.scale || 1);
+                    marker.visible = state.visible.includes(state.selected);
+                }
+            } else {
+                text += '\nClick a reciprocal lattice point or a detector spot.';
+                if (marker) marker.visible = false;
+            }
+            $('hklInfo').textContent = text;
+        }
+
+        // ---------- View ----------
+        function fitCamera() {
+            const R = state.R, target = new THREE.Vector3(0, 0, -R / 2);
+            let radius = Math.max(1.6 * R, state.maxG + R / 2);
+            const det = state.det;
+            if (det && det.show3D) radius = Math.max(radius, detTo3D(0, 0, _P).distanceTo(target) + Math.min(det.half, det.L) * det.s3);
+            const dist = 1.05 * radius / Math.sin(deg(camera.fov / 2));
+            const dir = camera.position.clone().sub(controls.target);
+            if (dir.lengthSq() < 1e-12) dir.set(1, 1, 2);
+            dir.normalize();
+            controls.target.copy(target);
+            camera.position.copy(target).addScaledVector(dir, dist);
+            camera.near = dist / 1000;
+            camera.far = dist * 10;
+            camera.updateProjectionMatrix();
+            controls.update();
+        }
+
+        function onResize() {
+            const w = container.clientWidth, h = container.clientHeight;
+            if (w === 0 || h === 0) return;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            labelRenderer.setSize(w, h);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.1);
+            tick(dt);
+            tickExposure(dt);
+            drawInset();
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        init();
     </script>
 </body>
 </html>
