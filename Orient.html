@@ -884,7 +884,8 @@ html[data-theme="light"] .btn-secondary:hover:not(:disabled) {
             'Orthorhombic (F)': { system: 'orthorhombic', type: 'F' },
             'Hexagonal (P)': { system: 'hexagonal', type: 'P' },
             'Trigonal (P, hex axes)': { system: 'trigonal_hex', type: 'P' },
-            'Trigonal (R, rhomb. axes)': { system: 'rhombohedral', type: 'R' },
+            'Trigonal (R, hex axes)': { system: 'trigonal_hex', type: 'R' },
+            'Trigonal (R, rhomb. axes)': { system: 'rhombohedral', type: 'P' },
             'Monoclinic (P)': { system: 'monoclinic', type: 'P' },
             'Monoclinic (C)': { system: 'monoclinic', type: 'C' },
             'Triclinic (P)': { system: 'triclinic', type: 'P' },
@@ -2489,7 +2490,7 @@ const vTo = new THREE.Vector3(cosPhi, sinPhi, 0);
                 yPos += 10;
                 
                 addParamRow('URL:', window.location.href);
-                addParamRow('Version:', '3.1 (General Detector), November 2, 2025');
+                addParamRow('Version:', '3.2 (General Detector), November 14, 2026');
                 addParamRow('Generated:', timestamp);
                 const fileName = document.getElementById('imageLoader').files[0]?.name || 'N/A (simulation)';
                 addParamRow('Image File:', fileName);
